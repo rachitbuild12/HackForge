@@ -90,6 +90,20 @@ export default function Navbar() {
               </Link>
             )}
 
+            {/* AI Team Copilot & TinyFish Live Web Research */}
+            {(user.role === 'team_leader' || user.role === 'participant') && (
+              <Link
+                to={`/hackathons/${activeHackathonId}/ai`}
+                className={`btn btn-sm ${location.pathname.includes('/ai') ? 'btn-secondary' : 'btn-ghost'}`}
+                style={{ color: location.pathname.includes('/ai') ? 'var(--accent-cyan)' : 'var(--text-secondary)' }}
+                title="AI Team Copilot & TinyFish Live Web Research"
+              >
+                <Cpu size={14} />
+                <span>AI Copilot</span>
+                <span className="badge badge-cyan" style={{ fontSize: '0.6rem', padding: '1px 5px', marginLeft: '2px' }}>TinyFish</span>
+              </Link>
+            )}
+
             {/* Organizer Portal - Only visible for Organizer role */}
             {user.role === 'organizer' && (
               <Link

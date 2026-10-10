@@ -53,6 +53,8 @@ export default function App() {
               <Route path="/gamification" element={<GamificationHub />} />
               <Route path="/hackathons/:id/activity" element={<DevelopmentActivity />} />
               <Route path="/hackathons/:id/ai" element={<AICopilot />} />
+              <Route path="/ai" element={<Navigate to="/hackathons/eth-global-2026/ai" replace />} />
+              <Route path="/team" element={<Navigate to="/hackathons/eth-global-2026/team" replace />} />
               <Route path="/hackathons/:id/scope" element={<ProjectScopePage />} />
               <Route path="/hackathons/:id/passport" element={<PassportPage />} />
 

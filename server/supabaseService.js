@@ -4,22 +4,25 @@
  * Gracefully falls back to local in-memory storage when Supabase environment variables are omitted.
  */
 
+import dotenv from 'dotenv';
+dotenv.config();
+
 // In-memory fallback stores
 const memoryInstallations = new Map();
 const memoryProjectRepositories = new Map();
 const memoryProjectActivities = new Map();
 
 export class SupabaseService {
-  constructor() {
-    this.supabaseUrl = process.env.SUPABASE_URL || '';
-    this.supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';
-    this.isConfigured = Boolean(this.supabaseUrl && this.supabaseKey);
-    
-    if (this.isConfigured) {
-      console.log('⚡ Supabase persistence layer connected:', this.supabaseUrl);
-    } else {
-      console.log('ℹ️ Supabase not configured in .env; operating with secure in-memory store.');
-    }
+  get supabaseUrl() {
+    return (process.env.SUPABASE_URL || '').replace(/\/rest\/v1\/?$/, '').replace(/\/+$/, '');
+  }
+
+  get supabaseKey() {
+    return process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';
+  }
+
+  get isConfigured() {
+    return Boolean(this.supabaseUrl && this.supabaseKey);
   }
 
   // 1. Save or Update Installation

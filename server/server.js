@@ -108,10 +108,11 @@ app.get('/api/auth/github/callback', async (req, res) => {
 
   if (error || !code) {
     console.error('OAuth callback error from GitHub:', error, error_description);
+    const friendlyMsg = error_description || (error === 'redirect_uri_mismatch'
+      ? 'Callback URL mismatch: Please verify Authorization callback URL in your GitHub OAuth App settings'
+      : (error || 'GitHub authorization was cancelled or failed'));
     return res.redirect(
-      `${CLIENT_URL}/hackathons/eth-global-2026/team?github_error=${encodeURIComponent(
-        error_description || error || 'Authorization failed'
-      )}`
+      `${CLIENT_URL}/hackathons/eth-global-2026/team?github_error=${encodeURIComponent(friendlyMsg)}`
     );
   }
 
@@ -189,6 +190,17 @@ app.get('/api/auth/github/callback', async (req, res) => {
   }
 });
 
+// OAuth Callback aliases (supporting varied developer callback configurations)
+app.get('/api/github/callback', (req, res) => {
+  const q = new URLSearchParams(req.query).toString();
+  res.redirect(`/api/auth/github/callback?${q}`);
+});
+
+app.get('/api/auth/callback', (req, res) => {
+  const q = new URLSearchParams(req.query).toString();
+  res.redirect(`/api/auth/github/callback?${q}`);
+});
+
 // 4. Direct Secure Token Authentication (Developer fallback for instant local testing)
 app.post('/api/auth/github/direct-token', async (req, res) => {
   const { token } = req.body;
@@ -248,7 +260,7 @@ app.post('/api/auth/github/direct-token', async (req, res) => {
   }
 });
 
-// 5. Disconnect GitHub
+// 5. Disconnect GitHub / Logout
 app.post('/api/auth/github/disconnect', (req, res) => {
   const sessionId = req.cookies?.hackforge_session_id;
   if (sessionId) {
@@ -256,6 +268,15 @@ app.post('/api/auth/github/disconnect', (req, res) => {
   }
   res.clearCookie('hackforge_session_id');
   res.json({ success: true, message: 'Disconnected GitHub session.' });
+});
+
+app.post('/api/auth/github/logout', (req, res) => {
+  const sessionId = req.cookies?.hackforge_session_id;
+  if (sessionId) {
+    serverSessions.delete(sessionId);
+  }
+  res.clearCookie('hackforge_session_id');
+  res.json({ success: true, message: 'Logged out of GitHub session.' });
 });
 
 // =========================================================

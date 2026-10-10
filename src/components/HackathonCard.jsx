@@ -77,7 +77,7 @@ export default function HackathonCard({ hackathon }) {
         </div>
 
         <Link to={`/hackathons/${hackathon.id}`} className="btn btn-primary btn-sm">
-          <span>Enter Sprint</span>
+          <span>Participate & Join</span>
           <ArrowRight size={13} />
         </Link>
       </div>

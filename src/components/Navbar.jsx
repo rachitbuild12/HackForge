@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Zap, Shield, Trophy, LayoutDashboard, Compass, Cpu, Bell, User, ChevronDown, Check, Terminal, ExternalLink, Sparkles, Play, Users } from 'lucide-react';
+import { Zap, Shield, Trophy, LayoutDashboard, Compass, Cpu, Bell, User, ChevronDown, Check, Terminal, ExternalLink, Sparkles, Play, Users, LogOut, LogIn } from 'lucide-react';
 import { useHackForge } from '../context/HackForgeContext';
 import XPProgress from './XPProgress';
 
 export default function Navbar() {
-  const { user, switchRole, activeHackathonId } = useHackForge();
+  const { user, switchRole, activeHackathonId, signOut, supabaseUser } = useHackForge();
   const location = useLocation();
   const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const roles = [
     { id: 'participant', label: 'Participant / Student', badge: 'badge-emerald', icon: '⚡' },
@@ -63,7 +64,8 @@ export default function Navbar() {
               style={{ color: isActive('/hackathons') && !location.pathname.includes('/organizer') ? 'var(--accent-emerald)' : 'var(--text-secondary)' }}
             >
               <Compass size={14} />
-              <span>Discover</span>
+              <span>Hackathons</span>
+              <span className="badge badge-emerald" style={{ fontSize: '0.6rem', padding: '1px 5px', marginLeft: '2px' }}>PARTICIPATE</span>
             </Link>
 
             {/* Hackathon Workspace Shortcut */}
@@ -286,20 +288,125 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* User Profile Link */}
-          <Link
-            to="/profile"
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '3px 8px', borderRadius: 'var(--radius-full)', background: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}
-          >
-            <img
-              src={user.avatar}
-              alt={user.name}
-              style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }}
-            />
-            <span className="navbar-profile-name" style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', maxWidth: '90px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {user.name.split(' ')[0]}
-            </span>
-          </Link>
+          {/* User Profile & Account Menu */}
+          {user && user.id !== 'guest' && (user.email || supabaseUser) ? (
+            <div style={{ position: 'relative' }}>
+              <button
+                type="button"
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '4px 10px',
+                  borderRadius: 'var(--radius-full)',
+                  background: 'var(--bg-surface)',
+                  border: '1px solid var(--border-subtle)',
+                  cursor: 'pointer',
+                  color: 'inherit'
+                }}
+                title="Account menu & Sign Out"
+              >
+                <img
+                  src={user.avatar}
+                  alt={user.name}
+                  style={{ width: '26px', height: '26px', borderRadius: '50%', objectFit: 'cover' }}
+                />
+                <span className="navbar-profile-name" style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', maxWidth: '90px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {user.name.split(' ')[0]}
+                </span>
+                <ChevronDown size={12} color="var(--text-muted)" />
+              </button>
+
+              {userMenuOpen && (
+                <>
+                  <div style={{ position: 'fixed', inset: 0, zIndex: 90 }} onClick={() => setUserMenuOpen(false)} />
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 'calc(100% + 8px)',
+                      right: 0,
+                      width: '240px',
+                      background: 'var(--bg-card)',
+                      border: '1px solid var(--border-default)',
+                      borderRadius: 'var(--radius-md)',
+                      boxShadow: 'var(--shadow-lg)',
+                      padding: '8px',
+                      zIndex: 100
+                    }}
+                  >
+                    <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-subtle)', marginBottom: '6px' }}>
+                      <div style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+                        {user.name}
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {user.email || `@${user.github}`}
+                      </div>
+                      <div style={{ marginTop: '6px' }}>
+                        <span className={`badge ${currentRoleObj.badge}`} style={{ fontSize: '0.65rem' }}>
+                          {currentRoleObj.label}
+                        </span>
+                      </div>
+                    </div>
+
+                    <Link
+                      to="/profile"
+                      onClick={() => setUserMenuOpen(false)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '8px 10px',
+                        borderRadius: 'var(--radius-sm)',
+                        fontSize: '0.82rem',
+                        color: 'var(--text-secondary)',
+                        textDecoration: 'none'
+                      }}
+                      className="nav-menu-item"
+                    >
+                      <User size={14} color="var(--accent-cyan)" />
+                      <span>Developer Profile</span>
+                    </Link>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        signOut();
+                      }}
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '8px 10px',
+                        borderRadius: 'var(--radius-sm)',
+                        fontSize: '0.82rem',
+                        color: 'var(--accent-rose)',
+                        background: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        marginTop: '4px'
+                      }}
+                    >
+                      <LogOut size={14} />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          ) : (
+            <Link
+              to="/auth"
+              className="btn btn-primary btn-sm"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 14px' }}
+            >
+              <LogIn size={14} />
+              <span>Sign In</span>
+            </Link>
+          )}
         </div>
 
       </div>

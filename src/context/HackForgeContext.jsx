@@ -233,18 +233,92 @@ export function HackForgeProvider({ children }) {
   // -------------------------------------------------------------
   // SUPABASE AUTHENTICATION LIFECYCLE
   // -------------------------------------------------------------
+  // SUPABASE AUTHENTICATION LIFECYCLE & CLEAN USER STATE
+  // -------------------------------------------------------------
+  const buildCleanUserFromSession = useCallback((sessionUser) => {
+    const email = sessionUser.email || '';
+    const name = sessionUser.user_metadata?.full_name || email.split('@')[0] || 'Builder';
+    const avatar = sessionUser.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(name)}`;
+    const github = sessionUser.user_metadata?.user_name || sessionUser.user_metadata?.preferred_username || name.toLowerCase().replace(/\s+/g, '-');
+
+    return {
+      id: sessionUser.id,
+      name,
+      email,
+      avatar,
+      role: sessionUser.user_metadata?.role || 'team_leader',
+      bio: sessionUser.user_metadata?.bio || 'HackForge Builder ready to innovate.',
+      github,
+      xp: 200,
+      level: 1,
+      levelTitle: "Genesis Builder",
+      nextLevelXp: 1000,
+      skills: ["Full Stack", "Git"],
+      stats: {
+        hackathonsWon: 0,
+        hackathonsParticipated: 1,
+        questsCompleted: 0,
+        passportsIssued: 0,
+        integrityScore: "100%"
+      },
+      badges: []
+    };
+  }, []);
+
+  const buildFreshTeamForUser = useCallback((userObj) => {
+    return {
+      id: `team_${userObj?.id?.slice(0, 8) || 'fresh'}`,
+      name: `${userObj?.name || 'Builder'}'s Squad`,
+      avatar: "⚡",
+      slogan: "Innovating at the edge with HackForge OS",
+      inviteCode: `FORGE-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+      githubRepo: null,
+      repoOwner: null,
+      repoName: null,
+      repoStatus: "Disconnected",
+      branch: "main",
+      commitsCount: 0,
+      linesChanged: "+0 / -0",
+      lastCommitTime: null,
+      problemStatementId: "ps-1",
+      problemStatementTitle: "Autonomous Agent Orchestration",
+      members: [
+        {
+          id: userObj?.id || 'm_user',
+          name: userObj?.name || 'Builder',
+          role: "Team Leader",
+          email: userObj?.email || '',
+          avatar: userObj?.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+          status: "online",
+          commitsCount: 0,
+          assignedQuests: []
+        }
+      ]
+    };
+  }, []);
+
   useEffect(() => {
     if (supabase && isSupabaseConfigured) {
       // Check active Supabase session
       supabase.auth.getSession().then(({ data: { session }, error }) => {
         if (!error && session?.user) {
           setSupabaseUser(session.user);
-          setUser(prev => ({
-            ...prev,
-            email: session.user.email || prev.email,
-            name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || prev.name,
-            avatar: session.user.user_metadata?.avatar_url || prev.avatar
-          }));
+          const cleanUser = buildCleanUserFromSession(session.user);
+          setUser(cleanUser);
+
+          // Check if user already has a saved squad in localStorage
+          const savedTeam = localStorage.getItem(`hackforge_team_${session.user.id}`);
+          if (savedTeam) {
+            try {
+              setTeam(JSON.parse(savedTeam));
+            } catch (e) {
+              setTeam(buildFreshTeamForUser(cleanUser));
+            }
+          } else {
+            const freshTeam = buildFreshTeamForUser(cleanUser);
+            setTeam(freshTeam);
+            localStorage.setItem(`hackforge_team_${session.user.id}`, JSON.stringify(freshTeam));
+          }
         }
       });
 
@@ -252,12 +326,21 @@ export function HackForgeProvider({ children }) {
       const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
         if (session?.user) {
           setSupabaseUser(session.user);
-          setUser(prev => ({
-            ...prev,
-            email: session.user.email || prev.email,
-            name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || prev.name,
-            avatar: session.user.user_metadata?.avatar_url || prev.avatar
-          }));
+          const cleanUser = buildCleanUserFromSession(session.user);
+          setUser(cleanUser);
+
+          const savedTeam = localStorage.getItem(`hackforge_team_${session.user.id}`);
+          if (savedTeam) {
+            try {
+              setTeam(JSON.parse(savedTeam));
+            } catch (e) {
+              setTeam(buildFreshTeamForUser(cleanUser));
+            }
+          } else {
+            const freshTeam = buildFreshTeamForUser(cleanUser);
+            setTeam(freshTeam);
+            localStorage.setItem(`hackforge_team_${session.user.id}`, JSON.stringify(freshTeam));
+          }
         } else {
           setSupabaseUser(null);
         }
@@ -267,7 +350,7 @@ export function HackForgeProvider({ children }) {
         subscription.unsubscribe();
       };
     }
-  }, []);
+  }, [buildCleanUserFromSession, buildFreshTeamForUser]);
 
   const supabaseSignIn = async (email, password) => {
     if (!supabase || !isSupabaseConfigured) {
@@ -293,12 +376,91 @@ export function HackForgeProvider({ children }) {
     return data;
   };
 
-  const supabaseSignOut = async () => {
-    if (supabase && isSupabaseConfigured) {
-      await supabase.auth.signOut();
-      setSupabaseUser(null);
-      showToast('Signed out of Supabase.', 'default');
+  // Complete Universal Sign Out
+  const signOut = async () => {
+    try {
+      if (supabase && isSupabaseConfigured) {
+        await supabase.auth.signOut();
+      }
+    } catch (e) {
+      console.warn("Supabase sign out error:", e);
     }
+
+    try {
+      await fetch('/api/auth/github/logout', { method: 'POST', credentials: 'include' });
+      await fetch('/api/auth/github/disconnect', { method: 'POST', credentials: 'include' });
+    } catch (e) {
+      // ignore
+    }
+
+    // Clean up local storage
+    localStorage.removeItem('hackforge_team');
+    localStorage.removeItem('hackforge_github_repo');
+    localStorage.removeItem('hackforge_quests');
+    localStorage.removeItem('hackforge_user');
+
+    setSupabaseUser(null);
+    setGithubUser(null);
+    setGithubConnectedRepo(null);
+
+    // Reset to clean unauthenticated guest user
+    setUser({
+      id: "guest",
+      name: "Guest Hacker",
+      email: "",
+      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+      role: "participant",
+      bio: "Sign in to access your squad, connect your GitHub repositories, and participate in hackathons.",
+      github: "",
+      xp: 0,
+      level: 1,
+      levelTitle: "Guest Explorer",
+      nextLevelXp: 1000,
+      skills: [],
+      stats: {
+        hackathonsWon: 0,
+        hackathonsParticipated: 0,
+        questsCompleted: 0,
+        passportsIssued: 0,
+        integrityScore: "100%"
+      },
+      badges: []
+    });
+
+    setTeam({
+      id: "team_guest",
+      name: "No Squad Joined",
+      avatar: "🛡️",
+      slogan: "Sign in and join a hackathon to start or join a squad",
+      inviteCode: "FORGE-NEW",
+      githubRepo: null,
+      problemStatementId: "ps-1",
+      problemStatementTitle: "Select Challenge",
+      members: []
+    });
+
+    showToast("Signed out successfully. Welcome back anytime!", "default");
+  };
+
+  const supabaseSignOut = signOut;
+
+  // Dedicated Hackathon Participation Handler
+  const registerForHackathon = (hackathonId) => {
+    const targetHackathon = hackathonsList.find(h => h.id === hackathonId) || hackathons[0];
+    setActiveHackathonId(hackathonId);
+
+    // If user's team is not registered or default guest squad, create user's squad
+    if (!team || team.id === 'team_guest' || team.members?.length === 0) {
+      const freshTeam = buildFreshTeamForUser(user);
+      setTeam(freshTeam);
+      localStorage.setItem('hackforge_team', JSON.stringify(freshTeam));
+      if (supabaseUser) {
+        localStorage.setItem(`hackforge_team_${supabaseUser.id}`, JSON.stringify(freshTeam));
+      }
+    }
+
+    showToast(`You have successfully joined ${targetHackathon.title}!`, 'default');
+    return targetHackathon;
   };
 
   const supabaseSignInWithGitHub = async () => {
@@ -1239,6 +1401,8 @@ export function HackForgeProvider({ children }) {
         supabaseSignIn,
         supabaseSignUp,
         supabaseSignOut,
+        signOut,
+        registerForHackathon,
         supabaseSignInWithGitHub,
         // GitHub App Integration
         githubAppStatus,

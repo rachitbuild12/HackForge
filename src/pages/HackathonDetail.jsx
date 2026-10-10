@@ -1,14 +1,20 @@
 import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { Trophy, Clock, Users, ShieldCheck, CheckCircle2, GitBranch, ArrowRight, ExternalLink, Bookmark, Check } from 'lucide-react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { Trophy, Clock, Users, ShieldCheck, CheckCircle2, GitBranch, ArrowRight, ExternalLink, Bookmark, Check, Sparkles } from 'lucide-react';
 import { useHackForge } from '../context/HackForgeContext';
 import Sidebar from '../components/Sidebar';
 
 export default function HackathonDetail() {
   const { id } = useParams();
-  const { hackathons, team, setTeam, showToast } = useHackForge();
+  const navigate = useNavigate();
+  const { hackathons, team, setTeam, showToast, registerForHackathon } = useHackForge();
   const hackathon = hackathons.find(h => h.id === id) || hackathons[0];
   const [selectedPs, setSelectedPs] = useState(team.problemStatementId || 'ps-1');
+
+  const handleJoinHackathon = () => {
+    registerForHackathon(hackathon.id);
+    navigate(`/hackathons/${hackathon.id}/team`);
+  };
 
   const handleSelectProblemStatement = (ps) => {
     setSelectedPs(ps.id);
@@ -54,10 +60,20 @@ export default function HackathonDetail() {
                     {hackathon.prizePool}
                   </div>
                 </div>
-                <Link to={`/hackathons/${hackathon.id}/team`} className="btn btn-primary">
-                  <span>Enter Squad Workspace</span>
+                <button
+                  type="button"
+                  onClick={handleJoinHackathon}
+                  className="btn btn-primary"
+                  style={{
+                    padding: '12px 24px',
+                    fontWeight: 700,
+                    boxShadow: '0 0 20px rgba(16, 185, 129, 0.4)'
+                  }}
+                >
+                  <Sparkles size={15} />
+                  <span>Participate / Join Sprint</span>
                   <ArrowRight size={14} />
-                </Link>
+                </button>
               </div>
             </div>
           </div>

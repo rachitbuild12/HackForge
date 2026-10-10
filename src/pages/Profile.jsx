@@ -1,5 +1,5 @@
 import React from 'react';
-import { Zap, ShieldCheck, Trophy, Award, ExternalLink, Calendar, Code2, Sparkles } from 'lucide-react';
+import { Zap, ShieldCheck, Trophy, Award, ExternalLink, Calendar, Code2, Sparkles, LogOut } from 'lucide-react';
 import GithubIcon from '../components/GithubIcon';
 import { useHackForge } from '../context/HackForgeContext';
 import XPProgress from '../components/XPProgress';
@@ -7,7 +7,7 @@ import BadgeCard from '../components/BadgeCard';
 import BuildPassport from '../components/BuildPassport';
 
 export default function Profile() {
-  const { user, passport } = useHackForge();
+  const { user, passport, signOut } = useHackForge();
 
   const pastProjects = [
     {
@@ -84,21 +84,42 @@ export default function Profile() {
             </div>
           </div>
 
-          {/* Quick Stats Grid */}
-          <div style={{ display: 'flex', gap: '16px', background: 'var(--bg-surface)', padding: '12px 20px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>HACKATHONS WON</div>
-              <div style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--accent-amber)', fontFamily: 'var(--font-mono)' }}>{user.stats.hackathonsWon}</div>
-            </div>
-            <div style={{ width: '1px', background: 'var(--border-subtle)' }} />
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>QUESTS FINISHED</div>
-              <div style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--accent-emerald)', fontFamily: 'var(--font-mono)' }}>{user.stats.questsCompleted}</div>
-            </div>
-            <div style={{ width: '1px', background: 'var(--border-subtle)' }} />
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>PASSPORTS</div>
-              <div style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--accent-violet)', fontFamily: 'var(--font-mono)' }}>{user.stats.passportsIssued}</div>
+          {/* Actions & Quick Stats Grid */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px' }}>
+            <button
+              type="button"
+              onClick={signOut}
+              className="btn btn-ghost btn-sm"
+              style={{
+                color: 'var(--accent-rose)',
+                border: '1px solid rgba(244, 63, 94, 0.3)',
+                padding: '6px 14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '0.8rem'
+              }}
+              title="Sign out of your HackForge account"
+            >
+              <LogOut size={13} />
+              <span>Sign Out</span>
+            </button>
+
+            <div style={{ display: 'flex', gap: '16px', background: 'var(--bg-surface)', padding: '12px 20px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>HACKATHONS WON</div>
+                <div style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--accent-amber)', fontFamily: 'var(--font-mono)' }}>{user.stats?.hackathonsWon || 0}</div>
+              </div>
+              <div style={{ width: '1px', background: 'var(--border-subtle)' }} />
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>QUESTS FINISHED</div>
+                <div style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--accent-emerald)', fontFamily: 'var(--font-mono)' }}>{user.stats?.questsCompleted || 0}</div>
+              </div>
+              <div style={{ width: '1px', background: 'var(--border-subtle)' }} />
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>PASSPORTS</div>
+                <div style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--accent-violet)', fontFamily: 'var(--font-mono)' }}>{user.stats?.passportsIssued || 0}</div>
+              </div>
             </div>
           </div>
         </div>

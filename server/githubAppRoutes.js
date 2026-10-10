@@ -82,13 +82,28 @@ export function createGitHubAppRouter(projectDataStore) {
 
   // 3. Handle GitHub App Installation Callback
   router.get('/callback', async (req, res) => {
-    const { installation_id, setup_action, state, error, error_description } = req.query;
+    const { installation_id, setup_action, state, code, error, error_description } = req.query;
 
-    if (error || !installation_id) {
-      console.error('[GitHub App] Callback error from GitHub:', error, error_description);
+    // If an OAuth code was received instead of an App installation_id, forward seamlessly to OAuth callback!
+    if (code && !installation_id) {
+      const q = new URLSearchParams(req.query).toString();
+      return res.redirect(`/api/auth/github/callback?${q}`);
+    }
+
+    if (error) {
+      console.error('[GitHub App] Error from GitHub callback:', error, error_description);
       return res.redirect(
         `${CLIENT_URL}/hackathons/eth-global-2026/team?github_error=${encodeURIComponent(
-          error_description || error || 'Installation authorization was cancelled or failed'
+          error_description || error || 'GitHub authorization was cancelled or failed'
+        )}`
+      );
+    }
+
+    if (!installation_id) {
+      console.error('[GitHub App] Missing installation_id from GitHub callback');
+      return res.redirect(
+        `${CLIENT_URL}/hackathons/eth-global-2026/team?github_error=${encodeURIComponent(
+          'Installation authorization was cancelled or no installation ID was returned by GitHub.'
         )}`
       );
     }

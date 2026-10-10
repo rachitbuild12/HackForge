@@ -89,14 +89,15 @@ app.get('/api/auth/github', (req, res) => {
   }
 
   const state = crypto.randomBytes(16).toString('hex');
-  const redirectUri = `${CLIENT_URL}/api/auth/github/callback`;
   const scopes = 'repo,read:user,user:email';
 
-  const authUrl = `https://github.com/login/oauth/authorize?client_id=${encodeURIComponent(
+  let authUrl = `https://github.com/login/oauth/authorize?client_id=${encodeURIComponent(
     GITHUB_CLIENT_ID
-  )}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(
-    scopes
-  )}&state=${encodeURIComponent(state)}`;
+  )}&scope=${encodeURIComponent(scopes)}&state=${encodeURIComponent(state)}`;
+
+  if (process.env.GITHUB_CALLBACK_URL) {
+    authUrl += `&redirect_uri=${encodeURIComponent(process.env.GITHUB_CALLBACK_URL)}`;
+  }
 
   res.redirect(authUrl);
 });

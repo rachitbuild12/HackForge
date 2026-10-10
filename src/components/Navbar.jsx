@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Zap, Shield, Trophy, LayoutDashboard, Compass, Cpu, Bell, User, ChevronDown, Check, Terminal, ExternalLink, Sparkles, Play } from 'lucide-react';
+import { Zap, Shield, Trophy, LayoutDashboard, Compass, Cpu, Bell, User, ChevronDown, Check, Terminal, ExternalLink, Sparkles, Play, Users } from 'lucide-react';
 import { useHackForge } from '../context/HackForgeContext';
 import XPProgress from './XPProgress';
 
@@ -76,25 +76,41 @@ export default function Navbar() {
               <span>Active Sprint</span>
             </Link>
 
-            {/* Organizer Portal */}
-            <Link
-              to="/organizer"
-              className={`btn btn-sm ${isActive('/organizer') ? 'btn-secondary' : 'btn-ghost'}`}
-              style={{ color: isActive('/organizer') ? 'var(--accent-violet)' : 'var(--text-secondary)' }}
-            >
-              <Shield size={14} />
-              <span>Organizer</span>
-            </Link>
+            {/* Squad / Team Workspace for Team Leaders & Participants */}
+            {(user.role === 'team_leader' || user.role === 'participant') && (
+              <Link
+                to={`/hackathons/${activeHackathonId}/team`}
+                className={`btn btn-sm ${location.pathname.includes('/team') ? 'btn-secondary' : 'btn-ghost'}`}
+                style={{ color: location.pathname.includes('/team') ? 'var(--accent-cyan)' : 'var(--text-secondary)' }}
+              >
+                <Users size={14} />
+                <span>My Squad</span>
+              </Link>
+            )}
 
-            {/* Judge Portal */}
-            <Link
-              to="/judge"
-              className={`btn btn-sm ${isActive('/judge') ? 'btn-secondary' : 'btn-ghost'}`}
-              style={{ color: isActive('/judge') ? 'var(--accent-amber)' : 'var(--text-secondary)' }}
-            >
-              <Trophy size={14} />
-              <span>Judge</span>
-            </Link>
+            {/* Organizer Portal - Only visible for Organizer role */}
+            {user.role === 'organizer' && (
+              <Link
+                to="/organizer"
+                className={`btn btn-sm ${isActive('/organizer') ? 'btn-secondary' : 'btn-ghost'}`}
+                style={{ color: isActive('/organizer') ? 'var(--accent-violet)' : 'var(--text-secondary)' }}
+              >
+                <Shield size={14} />
+                <span>Organizer</span>
+              </Link>
+            )}
+
+            {/* Judge Portal - Only visible for Judge role */}
+            {user.role === 'judge' && (
+              <Link
+                to="/judge"
+                className={`btn btn-sm ${isActive('/judge') ? 'btn-secondary' : 'btn-ghost'}`}
+                style={{ color: isActive('/judge') ? 'var(--accent-amber)' : 'var(--text-secondary)' }}
+              >
+                <Trophy size={14} />
+                <span>Judge</span>
+              </Link>
+            )}
 
             {/* Special Hackathon Demo Mode */}
             <Link

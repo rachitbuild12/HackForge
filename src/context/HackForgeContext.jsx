@@ -27,10 +27,12 @@ import {
   DEMO_STEPS
 } from '../data/demoModeData';
 import BadgeUnlockModal from '../components/BadgeUnlockModal';
+import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 
 const HackForgeContext = createContext(null);
 
 export function HackForgeProvider({ children }) {
+  const [supabaseUser, setSupabaseUser] = useState(null);
   const [user, setUser] = useState(initialUser);
   const [team, setTeam] = useState(() => {
     try {
@@ -227,6 +229,91 @@ export function HackForgeProvider({ children }) {
       }
     }
   }, [checkGitHubAuthStatus, checkGitHubAppStatus]);
+
+  // -------------------------------------------------------------
+  // SUPABASE AUTHENTICATION LIFECYCLE
+  // -------------------------------------------------------------
+  useEffect(() => {
+    if (supabase && isSupabaseConfigured) {
+      // Check active Supabase session
+      supabase.auth.getSession().then(({ data: { session }, error }) => {
+        if (!error && session?.user) {
+          setSupabaseUser(session.user);
+          setUser(prev => ({
+            ...prev,
+            email: session.user.email || prev.email,
+            name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || prev.name,
+            avatar: session.user.user_metadata?.avatar_url || prev.avatar
+          }));
+        }
+      });
+
+      // Listen for auth state changes (sign in, sign out, token refresh)
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (session?.user) {
+          setSupabaseUser(session.user);
+          setUser(prev => ({
+            ...prev,
+            email: session.user.email || prev.email,
+            name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || prev.name,
+            avatar: session.user.user_metadata?.avatar_url || prev.avatar
+          }));
+        } else {
+          setSupabaseUser(null);
+        }
+      });
+
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
+  }, []);
+
+  const supabaseSignIn = async (email, password) => {
+    if (!supabase || !isSupabaseConfigured) {
+      throw new Error('Supabase is not configured yet. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+    }
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    showToast(`Logged in via Supabase as ${data.user.email}!`, 'default');
+    return data;
+  };
+
+  const supabaseSignUp = async (email, password, metadata = {}) => {
+    if (!supabase || !isSupabaseConfigured) {
+      throw new Error('Supabase is not configured yet. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
+    }
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: metadata }
+    });
+    if (error) throw error;
+    showToast(`Account created via Supabase!`, 'default');
+    return data;
+  };
+
+  const supabaseSignOut = async () => {
+    if (supabase && isSupabaseConfigured) {
+      await supabase.auth.signOut();
+      setSupabaseUser(null);
+      showToast('Signed out of Supabase.', 'default');
+    }
+  };
+
+  const supabaseSignInWithGitHub = async () => {
+    if (!supabase || !isSupabaseConfigured) {
+      throw new Error('Supabase is not configured yet.');
+    }
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'github',
+      options: {
+        redirectTo: window.location.origin + '/hackathons/eth-global-2026/team'
+      }
+    });
+    if (error) throw error;
+    return data;
+  };
 
   const fetchGitHubRepos = async () => {
     setIsGithubLoading(true);
@@ -1146,6 +1233,13 @@ export function HackForgeProvider({ children }) {
         syncGitHubTelemetry,
         disconnectGitHub,
         connectDirectToken,
+        // Supabase Auth Integration
+        supabaseUser,
+        isSupabaseConfigured,
+        supabaseSignIn,
+        supabaseSignUp,
+        supabaseSignOut,
+        supabaseSignInWithGitHub,
         // GitHub App Integration
         githubAppStatus,
         checkGitHubAppStatus,

@@ -742,6 +742,18 @@ ${next.map(n => `- **[${n.targetRole}]** ${n.item} (ETA: ${n.eta})`).join('\n')}
 export function answerCopilotPrompt(prompt, context, analysis) {
   const p = (prompt || "").toLowerCase();
 
+  // TinyFish Web Research Query
+  if (p.includes("tinyfish") || p.includes("web research") || p.includes("research docs") || p.includes("competitor")) {
+    return {
+      answer: `🐟 TinyFish Live Web Research Integration for ${context.teamName}:
+- **Autonomous Navigation**: TinyFish web agents navigate public documentation, extract real API schemas, and analyze competitors.
+- **Real-Time Telemetry**: Real-time SSE streaming delivers live execution progress, browser streaming previews, and verified source citations.
+- **Research-to-Quest Conversion**: Convert technical findings into actionable hackathon quests with verifiable evidence requirements and milestone XP rewards (+350 XP).
+- **Action**: Switch to the "TinyFish Live Web Research" tab above to launch an automated browser exploration.`,
+      evidence: [{ type: "INTEGRATION", label: "TinyFish Live Web Research Agent" }]
+    };
+  }
+
   // Architecture audit
   if (p.includes("architecture audit") || p.includes("audit")) {
     return {

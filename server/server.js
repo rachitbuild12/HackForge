@@ -3,6 +3,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
+import { createTinyFishRouter } from './tinyfishRoutes.js';
 
 dotenv.config();
 
@@ -564,9 +565,13 @@ app.post('/api/github/sync/:projectId', async (req, res) => {
   }
 });
 
+// 10. TinyFish Live Web Research API Routes
+app.use('/api/tinyfish', createTinyFishRouter());
+
 // Start Server
 app.listen(PORT, () => {
   console.log(`⚡ HackForge Secure GitHub Backend running on http://localhost:${PORT}`);
   console.log(`🔒 Client Origin: ${CLIENT_URL}`);
   console.log(`🔑 GitHub OAuth configured: ${Boolean(GITHUB_CLIENT_ID && GITHUB_CLIENT_SECRET)}`);
+  console.log(`🐟 TinyFish Live Research configured: ${Boolean(process.env.TINYFISH_API_KEY && process.env.TINYFISH_API_KEY.trim())}`);
 });

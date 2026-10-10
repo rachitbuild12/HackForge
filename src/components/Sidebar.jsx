@@ -141,6 +141,7 @@ export default function Sidebar({ mode = 'hackathon' }) {
         >
           <Cpu size={16} />
           <span>AI Team Copilot</span>
+          <span className="badge badge-cyan" style={{ fontSize: '0.6rem', padding: '1px 5px', marginLeft: 'auto' }}>TinyFish</span>
         </NavLink>
 
         <NavLink

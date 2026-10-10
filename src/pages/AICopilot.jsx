@@ -27,8 +27,11 @@ import {
   Send,
   Terminal,
   Activity,
-  BookmarkPlus
+  BookmarkPlus,
+  Globe,
+  Compass
 } from 'lucide-react';
+import TinyFishResearchPanel from '../components/TinyFishResearchPanel';
 import { useHackForge } from '../context/HackForgeContext';
 import Sidebar from '../components/Sidebar';
 import GithubIcon from '../components/GithubIcon';
@@ -56,6 +59,9 @@ export default function AICopilot() {
     activeHackathon,
     showToast
   } = useHackForge();
+
+  // Active perspective tab ('intelligence' | 'research')
+  const [copilotView, setCopilotView] = useState('intelligence');
 
   // Active time window for Progress Summary ('1h' | '3h' | 'all')
   const [timeWindow, setTimeWindow] = useState('3h');
@@ -168,6 +174,7 @@ export default function AICopilot() {
 
   const presetQueries = [
     "Run Pre-Submission Architecture Audit",
+    "How do I use TinyFish Web Research?",
     "What is blocking Sophia?",
     "What did Arjun work on in the last hour?",
     "Sprint Pacing Assessment"
@@ -228,6 +235,48 @@ export default function AICopilot() {
         </div>
 
         {/* ================================================================ */}
+        {/* PERSPECTIVE NAVIGATION TABS: INTELLIGENCE vs TINYFISH RESEARCH    */}
+        {/* ================================================================ */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '22px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '12px' }}>
+          <button
+            type="button"
+            onClick={() => setCopilotView('intelligence')}
+            className={`btn btn-sm ${copilotView === 'intelligence' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 16px', fontSize: '0.82rem' }}
+          >
+            <Sparkles size={14} />
+            <span>Sprint Intelligence & Standups</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setCopilotView('research')}
+            className={`btn btn-sm ${copilotView === 'research' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 16px',
+              fontSize: '0.82rem',
+              borderColor: copilotView === 'research' ? 'var(--accent-cyan)' : 'var(--border-default)'
+            }}
+          >
+            <Globe size={14} color="var(--accent-cyan)" />
+            <span>TinyFish Live Web Research</span>
+            <span className="badge badge-cyan" style={{ fontSize: '0.62rem', padding: '2px 6px' }}>LIVE AGENT</span>
+          </button>
+        </div>
+
+        {copilotView === 'research' ? (
+          <TinyFishResearchPanel
+            defaultGoal={
+              context.problemStatement?.title
+                ? `Explore technical documentation and architectures relevant to ${context.problemStatement.title}. Identify endpoints, SDK parameters, and implementation considerations for ${team.name}.`
+                : ''
+            }
+          />
+        ) : (
+          <>
         {/* COLLAPSIBLE: STRUCTURED PROJECT CONTEXT INSPECTOR DRAWER         */}
         {/* Demonstrates that the AI receives all 12 required structured inputs */}
         {/* ================================================================ */}
@@ -1070,6 +1119,8 @@ export default function AICopilot() {
             </button>
           </form>
         </div>
+          </>
+        )}
 
       </main>
     </div>

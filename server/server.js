@@ -319,7 +319,7 @@ function normalizeGitHubActivities(projectId, commits = [], pulls = [], issues =
   commits.forEach(c => {
     const actorName = c.commit?.author?.name || c.author?.login || 'Anonymous Committer';
     const actorUsername = c.author?.login || actorName.toLowerCase().replace(/\s+/g, '-');
-    const actorAvatar = c.author?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
+    const actorAvatar = c.author?.avatar_url || (c.author?.login ? `https://avatars.githubusercontent.com/${c.author.login}` : `https://github.com/identicons/${encodeURIComponent(actorUsername)}.png`);
     const message = c.commit?.message?.split('\n')[0] || 'Code modification';
     const shortSha = c.sha?.substring(0, 7) || 'commit';
 
@@ -338,9 +338,9 @@ function normalizeGitHubActivities(projectId, commits = [], pulls = [], issues =
         full_hash: c.sha,
         message,
         url: c.html_url,
-        additions: c.stats?.additions || Math.floor(Math.random() * 80) + 10,
-        deletions: c.stats?.deletions || Math.floor(Math.random() * 20),
-        changed_files: c.files?.length || 2
+        additions: c.stats?.additions ?? 0,
+        deletions: c.stats?.deletions ?? 0,
+        changed_files: c.files?.length ?? 0
       },
       github_event_id: `gh-commit-${c.sha}`
     });
@@ -348,14 +348,17 @@ function normalizeGitHubActivities(projectId, commits = [], pulls = [], issues =
 
   // 2. Pull Requests -> PULL_REQUEST
   pulls.forEach(pr => {
+    const username = pr.user?.login || 'developer';
+    const avatarUrl = pr.user?.avatar_url || `https://avatars.githubusercontent.com/${username}`;
+
     activities.push({
       id: `act-pr-${pr.number}`,
       project_id: projectId,
       type: 'PULL_REQUEST',
       actor: {
         name: pr.user?.login || 'Developer',
-        username: pr.user?.login || 'developer',
-        avatar_url: pr.user?.avatar_url || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80'
+        username: username,
+        avatar_url: avatarUrl
       },
       timestamp: pr.created_at,
       metadata: {
@@ -373,8 +376,9 @@ function normalizeGitHubActivities(projectId, commits = [], pulls = [], issues =
 
   // 3. Issues -> ISSUE
   issues.forEach(issue => {
-    // Filter out PRs if returned by issues endpoint
     if (issue.pull_request) return;
+    const username = issue.user?.login || 'contributor';
+    const avatarUrl = issue.user?.avatar_url || `https://avatars.githubusercontent.com/${username}`;
 
     activities.push({
       id: `act-issue-${issue.number}`,
@@ -382,8 +386,8 @@ function normalizeGitHubActivities(projectId, commits = [], pulls = [], issues =
       type: 'ISSUE',
       actor: {
         name: issue.user?.login || 'Contributor',
-        username: issue.user?.login || 'contributor',
-        avatar_url: issue.user?.avatar_url || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'
+        username: username,
+        avatar_url: avatarUrl
       },
       timestamp: issue.created_at,
       metadata: {
@@ -404,9 +408,9 @@ function normalizeGitHubActivities(projectId, commits = [], pulls = [], issues =
       project_id: projectId,
       type: 'BRANCH',
       actor: {
-        name: 'Squad Developer',
-        username: 'squad-dev',
-        avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
+        name: 'Git Branch',
+        username: 'git-branch',
+        avatar_url: `https://github.com/identicons/${encodeURIComponent(b.name)}.png`
       },
       timestamp: new Date().toISOString(),
       metadata: {

@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "server": "node server/server.js",
+    "test": "node server/test-real-github.js",
+    "test:app": "node server/test-github-app.js",
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview"

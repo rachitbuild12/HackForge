@@ -265,6 +265,9 @@ export function normalizeGitHubActivities(projectId, commits = [], pulls = [], i
 
   // 1. Commits -> COMMIT
   commits.forEach(c => {
+    const authorLogin = c.author?.login || c.commit.author?.name || 'builder';
+    const avatarUrl = c.author?.avatar_url || `https://avatars.githubusercontent.com/${encodeURIComponent(authorLogin)}`;
+
     activities.push({
       id: `gh-commit-${c.sha}`,
       projectId,
@@ -272,14 +275,14 @@ export function normalizeGitHubActivities(projectId, commits = [], pulls = [], i
       title: c.commit.message.split('\n')[0],
       author: {
         name: c.commit.author.name || 'Anonymous',
-        login: c.author?.login || c.commit.author.name || 'builder',
-        avatar: c.author?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
+        login: authorLogin,
+        avatar: avatarUrl
       },
       hash: c.sha.substring(0, 7),
       fullHash: c.sha,
       url: c.html_url,
       branch: 'main',
-      linesChanged: '+45 / -12',
+      linesChanged: c.stats ? `+${c.stats.additions ?? 0} / -${c.stats.deletions ?? 0}` : '+0 / -0',
       timestamp: c.commit.author.date,
       verified: Boolean(c.commit.verification?.verified)
     });
@@ -287,6 +290,9 @@ export function normalizeGitHubActivities(projectId, commits = [], pulls = [], i
 
   // 2. Pull Requests -> PULL_REQUEST
   pulls.forEach(pr => {
+    const userLogin = pr.user?.login || 'collaborator';
+    const avatarUrl = pr.user?.avatar_url || `https://avatars.githubusercontent.com/${encodeURIComponent(userLogin)}`;
+
     activities.push({
       id: `gh-pr-${pr.id}`,
       projectId,
@@ -294,8 +300,8 @@ export function normalizeGitHubActivities(projectId, commits = [], pulls = [], i
       title: pr.title,
       author: {
         name: pr.user?.login || 'Collaborator',
-        login: pr.user?.login || 'collaborator',
-        avatar: pr.user?.avatar_url || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'
+        login: userLogin,
+        avatar: avatarUrl
       },
       number: pr.number,
       state: pr.state,
@@ -310,6 +316,9 @@ export function normalizeGitHubActivities(projectId, commits = [], pulls = [], i
 
   // 3. Issues -> ISSUE
   issues.filter(i => !i.pull_request).forEach(issue => {
+    const userLogin = issue.user?.login || 'tester';
+    const avatarUrl = issue.user?.avatar_url || `https://avatars.githubusercontent.com/${encodeURIComponent(userLogin)}`;
+
     activities.push({
       id: `gh-issue-${issue.id}`,
       projectId,
@@ -317,8 +326,8 @@ export function normalizeGitHubActivities(projectId, commits = [], pulls = [], i
       title: issue.title,
       author: {
         name: issue.user?.login || 'Tester',
-        login: issue.user?.login || 'tester',
-        avatar: issue.user?.avatar_url || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80'
+        login: userLogin,
+        avatar: avatarUrl
       },
       number: issue.number,
       state: issue.state,

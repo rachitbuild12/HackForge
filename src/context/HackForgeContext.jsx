@@ -35,7 +35,14 @@ export function HackForgeProvider({ children }) {
   const [team, setTeam] = useState(() => {
     try {
       const saved = localStorage.getItem('hackforge_team');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.githubRepo && parsed.githubRepo.includes('hyperdrive-protocol')) {
+          localStorage.removeItem('hackforge_team');
+          return currentTeam;
+        }
+        return parsed;
+      }
     } catch (e) {
       console.warn("Failed loading team from localStorage", e);
     }
@@ -63,7 +70,14 @@ export function HackForgeProvider({ children }) {
   const [githubConnectedRepo, setGithubConnectedRepo] = useState(() => {
     try {
       const saved = localStorage.getItem('hackforge_github_repo');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.full_name && parsed.full_name.includes('hyperdrive-protocol')) {
+          localStorage.removeItem('hackforge_github_repo');
+          return null;
+        }
+        return parsed;
+      }
     } catch (e) {
       console.warn("Failed loading github repo from localStorage", e);
     }

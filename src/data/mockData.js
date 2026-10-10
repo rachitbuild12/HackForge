@@ -201,12 +201,12 @@ export const currentTeam = {
   inviteCode: "FORGE-7X9Q",
   problemStatementId: "ps-1",
   problemStatementTitle: "Autonomous Agent-to-Agent Micro-Settlement Protocol",
-  githubRepo: "https://github.com/hyperdrive-protocol/settlement-engine",
-  repoStatus: "Connected & Synced",
-  branch: "main",
-  commitsCount: 37,
-  linesChanged: "+14,290 / -1,120",
-  lastCommitTime: "12 mins ago",
+  githubRepo: null,
+  repoStatus: "Not Connected",
+  branch: null,
+  commitsCount: 0,
+  linesChanged: "+0 / -0",
+  lastCommitTime: "No commits yet",
   integrityScore: 97.4,
   xpEarned: 2450,
   leaderboardRank: 3,
@@ -414,110 +414,7 @@ export const initialQuests = [
   }
 ];
 
-export const initialActivities = [
-  {
-    id: "act-commit-1112",
-    project_id: "team-hyperdrive",
-    type: "COMMIT",
-    actor: {
-      name: "Kritika",
-      username: "kritika-dev",
-      avatar_url: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80"
-    },
-    timestamp: "2026-09-23T23:12:00Z",
-    metadata: {
-      message: "Updated documentation",
-      hash: "8f4a21e",
-      branch: "main",
-      url: "https://github.com/hyperdrive-protocol/settlement-engine/commit/8f4a21e",
-      additions: 120,
-      deletions: 12,
-      changed_files: 3
-    },
-    github_event_id: "gh-commit-8f4a21e"
-  },
-  {
-    id: "act-commit-1058",
-    project_id: "team-hyperdrive",
-    type: "COMMIT",
-    actor: {
-      name: "Arjun",
-      username: "arjun-ml",
-      avatar_url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80"
-    },
-    timestamp: "2026-09-23T22:58:00Z",
-    metadata: {
-      message: "Created ML inference service",
-      hash: "3d9c70b",
-      branch: "ai-inference",
-      url: "https://github.com/hyperdrive-protocol/settlement-engine/commit/3d9c70b",
-      additions: 430,
-      deletions: 25,
-      changed_files: 5
-    },
-    github_event_id: "gh-commit-3d9c70b"
-  },
-  {
-    id: "act-commit-1042",
-    project_id: "team-hyperdrive",
-    type: "COMMIT",
-    actor: {
-      name: "Rachit",
-      username: "rachit-security",
-      avatar_url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"
-    },
-    timestamp: "2026-09-23T22:42:00Z",
-    metadata: {
-      message: "Added API authentication",
-      hash: "a12e99f",
-      branch: "main",
-      url: "https://github.com/hyperdrive-protocol/settlement-engine/commit/a12e99f",
-      additions: 185,
-      deletions: 14,
-      changed_files: 4
-    },
-    github_event_id: "gh-commit-a12e99f"
-  },
-  {
-    id: "act-pr-14",
-    project_id: "team-hyperdrive",
-    type: "PULL_REQUEST",
-    actor: {
-      name: "Kritika",
-      username: "kritika-dev",
-      avatar_url: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80"
-    },
-    timestamp: "2026-09-23T21:30:00Z",
-    metadata: {
-      number: 14,
-      title: "Agent HUD visualizer & real-time telemetry stream",
-      branch: "hud-visuals",
-      base: "main",
-      url: "https://github.com/hyperdrive-protocol/settlement-engine/pull/14",
-      is_merged: true,
-      additions: 712,
-      deletions: 88
-    },
-    github_event_id: "gh-pr-14"
-  },
-  {
-    id: "act-milestone-api",
-    project_id: "team-hyperdrive",
-    type: "MILESTONE",
-    actor: {
-      name: "HackForge Sentinel",
-      username: "hackforge-bot",
-      avatar_url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&auto=format&fit=crop&q=80"
-    },
-    timestamp: "2026-09-23T20:15:00Z",
-    metadata: {
-      title: "Deploy your first working API",
-      message: "Verified backend endpoint /api/v1/health with public deployment URL",
-      diff: "+250 XP to Team Vault"
-    },
-    github_event_id: "evt-milestone-q4"
-  }
-];
+export const initialActivities = [];
 
 export const currentBuildPassport = {
   passportId: "HFP-2026-9842A-77",

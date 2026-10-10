@@ -327,65 +327,79 @@ export default function TeamWorkspace() {
                     @{githubUser.login}
                   </span>
                 )}
-                <span className={`badge ${team.repoStatus?.includes('Verified') || githubConnectedRepo ? 'badge-emerald' : 'badge-amber'}`} style={{ fontSize: '0.65rem' }}>
-                  <ShieldCheck size={11} /> {githubConnectedRepo ? 'Live Sync Active' : (team.repoStatus || 'Connected')}
-                </span>
+                {githubConnectedRepo || team.githubRepo ? (
+                  <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>
+                    <ShieldCheck size={11} /> Live Sync Active
+                  </span>
+                ) : (
+                  <span className="badge badge-amber" style={{ fontSize: '0.65rem' }}>
+                    <Shield size={11} /> Not Connected
+                  </span>
+                )}
               </div>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <GithubIcon size={18} />
-                <a
-                  href={team.githubRepo || "https://github.com"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    fontSize: '0.92rem',
-                    color: 'var(--accent-cyan)',
-                    fontFamily: 'var(--font-mono)',
-                    fontWeight: 600,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  <span>{(team.githubRepo || "github.com/hackforge-squad/sprint").replace('https://github.com/', '')}</span>
-                  <ExternalLink size={12} />
-                </a>
+                {githubConnectedRepo || team.githubRepo ? (
+                  <a
+                    href={githubConnectedRepo?.html_url || team.githubRepo}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      fontSize: '0.92rem',
+                      color: 'var(--accent-cyan)',
+                      fontFamily: 'var(--font-mono)',
+                      fontWeight: 600,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <span>{(githubConnectedRepo?.full_name || team.githubRepo || '').replace('https://github.com/', '')}</span>
+                    <ExternalLink size={12} />
+                  </a>
+                ) : (
+                  <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
+                    No GitHub repository linked yet
+                  </span>
+                )}
               </div>
 
               <div style={{ display: 'flex', gap: '6px' }}>
-                <button
-                  type="button"
-                  onClick={() => syncGitHubTelemetry(team.id)}
-                  disabled={isGithubLoading}
-                  className="btn btn-ghost btn-sm"
-                  style={{ padding: '3px 8px', fontSize: '0.75rem' }}
-                  title="Pull latest commits & PRs from GitHub"
-                >
-                  <RefreshCw size={12} className={isGithubLoading ? 'spin' : ''} />
-                  <span>Sync</span>
-                </button>
+                {(githubConnectedRepo || team.githubRepo) && (
+                  <button
+                    type="button"
+                    onClick={() => syncGitHubTelemetry(team.id)}
+                    disabled={isGithubLoading}
+                    className="btn btn-ghost btn-sm"
+                    style={{ padding: '3px 8px', fontSize: '0.75rem' }}
+                    title="Pull latest commits & PRs from GitHub"
+                  >
+                    <RefreshCw size={12} className={isGithubLoading ? 'spin' : ''} />
+                    <span>Sync</span>
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setGithubModalOpen(true)}
-                  className="btn btn-secondary btn-sm"
-                  style={{ padding: '3px 8px', fontSize: '0.75rem', borderColor: 'rgba(6, 182, 212, 0.4)' }}
+                  className={`btn ${githubConnectedRepo || team.githubRepo ? 'btn-secondary' : 'btn-primary'} btn-sm`}
+                  style={{ padding: '4px 10px', fontSize: '0.75rem' }}
                 >
-                  <span>{githubConnectedRepo ? 'Switch Repo' : 'Connect GitHub'}</span>
+                  <span>{githubConnectedRepo || team.githubRepo ? 'Switch Repo' : 'Connect GitHub'}</span>
                 </button>
               </div>
             </div>
 
             <div style={{ display: 'flex', gap: '16px', fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', flexWrap: 'wrap' }}>
-              <span>Branch: <strong style={{ color: 'var(--text-primary)' }}>{team.branch || 'main'}</strong></span>
+              <span>Branch: <strong style={{ color: 'var(--text-primary)' }}>{team.branch || (githubConnectedRepo ? 'main' : 'None')}</strong></span>
               <span>•</span>
-              <span>Commits: <strong style={{ color: 'var(--accent-emerald)' }}>{team.commitsCount || 1}</strong></span>
+              <span>Commits: <strong style={{ color: team.commitsCount > 0 ? 'var(--accent-emerald)' : 'var(--text-muted)' }}>{team.commitsCount || 0}</strong></span>
               <span>•</span>
-              <span>Diff: <strong style={{ color: 'var(--text-primary)' }}>{team.linesChanged || '+250 / -0'}</strong></span>
+              <span>Diff: <strong style={{ color: 'var(--text-primary)' }}>{team.linesChanged || '+0 / -0'}</strong></span>
               <span>•</span>
-              <span>Last Commit: <strong style={{ color: 'var(--accent-cyan)' }}>{team.lastCommitTime || 'Just now'}</strong></span>
+              <span>Last Commit: <strong style={{ color: team.lastCommitTime && team.lastCommitTime !== 'No commits yet' ? 'var(--accent-cyan)' : 'var(--text-muted)' }}>{team.lastCommitTime || 'None'}</strong></span>
             </div>
           </div>
         </div>

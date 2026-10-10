@@ -81,10 +81,11 @@ app.get('/api/auth/github/status', (req, res) => {
 // 2. Initiate GitHub OAuth
 app.get('/api/auth/github', (req, res) => {
   if (!GITHUB_CLIENT_ID || !GITHUB_CLIENT_SECRET) {
-    return res.status(400).json({
-      error: 'GITHUB_OAUTH_NOT_CONFIGURED',
-      message: 'GitHub OAuth credentials are not configured in .env. Please set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET.'
-    });
+    return res.redirect(
+      `${CLIENT_URL}/hackathons/eth-global-2026/team?github_error=${encodeURIComponent(
+        'GitHub OAuth credentials (GITHUB_CLIENT_ID & GITHUB_CLIENT_SECRET) are not configured in .env. You can connect instantly using a Personal Access Token in the modal!'
+      )}`
+    );
   }
 
   const state = crypto.randomBytes(16).toString('hex');

@@ -82,14 +82,24 @@ export default function Auth() {
           <div style={{ flex: 1, height: '1px', background: 'var(--border-subtle)' }} />
         </div>
 
-        {/* GitHub Mock Connect */}
+        {/* GitHub Real OAuth Connect */}
         <button
           className="btn btn-primary"
-          style={{ width: '100%', marginBottom: '16px', padding: '12px' }}
-          onClick={() => handleLogin('participant', '/dashboard')}
+          style={{ width: '100%', marginBottom: '12px', padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
+          onClick={() => {
+            window.location.href = '/api/auth/github';
+          }}
         >
           <GithubIcon size={18} />
-          <span>Connect GitHub Developer Account</span>
+          <span>Sign In with GitHub</span>
+        </button>
+
+        <button
+          className="btn btn-ghost"
+          style={{ width: '100%', marginBottom: '16px', fontSize: '0.8rem', color: 'var(--text-muted)' }}
+          onClick={() => handleLogin('participant', '/dashboard')}
+        >
+          <span>Continue with Offline Demo Persona →</span>
         </button>
 
         <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.4 }}>

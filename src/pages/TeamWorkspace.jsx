@@ -6,6 +6,7 @@ import {
   ExternalLink,
   UserPlus,
   MessageSquare,
+  Shield,
   ShieldCheck,
   Zap,
   ArrowRight,

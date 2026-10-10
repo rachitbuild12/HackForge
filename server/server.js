@@ -22,8 +22,20 @@ const serverSessions = new Map();
 // projectId -> { repoMeta: object, activities: ProjectActivity[] }
 const projectDataStore = new Map();
 
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'https://hackforges.netlify.app',
+  process.env.CLIENT_URL
+].filter(Boolean);
+
 app.use(cors({
-  origin: CLIENT_URL,
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin) || (typeof origin === 'string' && origin.endsWith('.netlify.app'))) {
+      return callback(null, true);
+    }
+    return callback(null, true);
+  },
   credentials: true
 }));
 app.use(express.json({

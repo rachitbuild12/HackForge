@@ -67,11 +67,12 @@ export function createGitHubAppRouter(projectDataStore) {
     const state = crypto.randomBytes(16).toString('hex');
     csrfStateStore.set(state, { createdAt: Date.now() });
 
+    const isHttps = CLIENT_URL.startsWith('https://');
     // Store state in temporary cookie for validation
     res.cookie('hackforge_github_state', state, {
       httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
+      secure: isHttps,
+      sameSite: isHttps ? 'none' : 'lax',
       maxAge: 15 * 60 * 1000 // 15 mins
     });
 
@@ -147,11 +148,12 @@ export function createGitHubAppRouter(projectDataStore) {
         permissions: tokenData.permissions || {}
       });
 
+      const isHttps = CLIENT_URL.startsWith('https://');
       // Set cookie for active installation ID
       res.cookie('hackforge_installation_id', String(installation_id), {
         httpOnly: true,
-        secure: false,
-        sameSite: 'lax',
+        secure: isHttps,
+        sameSite: isHttps ? 'none' : 'lax',
         maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
       });
 

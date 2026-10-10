@@ -1,10 +1,11 @@
 // ============================================================================
-// HACKFORGE AI TEAM COPILOT ENGINE
-// Context-Intensive, Evidence-Grounded Autonomous Sprint Intelligence
+// HACKFORGE TELEMETRY REASONING COPILOT ENGINE
+// Grounded Sprint Intelligence & Activity Reasoning (Rule-Based, Non-Generative)
 // ============================================================================
 
 /**
- * Normalizes and extracts structured project context
+ * Normalizes and extracts structured project context safely from input parameters.
+ * Validates the shape of each data source before using it.
  */
 export function extractStructuredContext({
   team = {},
@@ -14,97 +15,112 @@ export function extractStructuredContext({
   pullRequests = [],
   issues = [],
   activeHackathon = null
-}) {
+} = {}) {
+  // Safe team object
+  const safeTeam = team && typeof team === 'object' ? team : {};
+
   // Resolve problem statement
-  const ps = problemStatement || (activeHackathon?.problemStatements?.find(p => p.id === team.problemStatementId)) || {
-    id: team.problemStatementId || "ps-1",
-    title: team.problemStatementTitle || "Autonomous Agent-to-Agent Micro-Settlement Protocol",
-    track: "Autonomous Agents",
-    description: "High-throughput, low-latency micro-payment channels between AI agents negotiating real-time inference tasks.",
-    bounty: "$25,000",
-    sponsor: "Starknet & Base"
+  const ps = problemStatement || (activeHackathon?.problemStatements?.find(p => p.id === safeTeam.problemStatementId)) || {
+    id: safeTeam.problemStatementId || null,
+    title: safeTeam.problemStatementTitle || "Undeclared Problem Statement",
+    track: safeTeam.track || "General Track",
+    description: safeTeam.problemDescription || safeTeam.slogan || "No problem statement description provided.",
+    bounty: safeTeam.bounty || null,
+    sponsor: safeTeam.sponsor || null
   };
 
-  // Team members & assigned roles
-  const members = team.members || [];
-  const assignedRoles = members.map(m => m.role);
+  // Safe team members array
+  const members = Array.isArray(safeTeam.members) ? safeTeam.members : [];
+  const assignedRoles = members.map(m => m.role).filter(Boolean);
+
+  // Safe arrays for quests, activities, PRs, issues
+  const safeQuests = Array.isArray(quests) ? quests : [];
+  const safeActivities = Array.isArray(activities) ? activities : [];
+  const safePRs = Array.isArray(pullRequests) ? pullRequests : [];
+  const safeIssues = Array.isArray(issues) ? issues : [];
 
   // Quests categorization
-  const completedQuests = quests.filter(q => q.status === 'COMPLETED' || q.claimed);
-  const inProgressQuests = quests.filter(q => q.status === 'IN_PROGRESS' || q.status === 'CLAIMABLE');
-  const availableQuests = quests.filter(q => q.status === 'AVAILABLE');
+  const completedQuests = safeQuests.filter(q => q && (q.status === 'COMPLETED' || q.claimed));
+  const inProgressQuests = safeQuests.filter(q => q && (q.status === 'IN_PROGRESS' || q.status === 'CLAIMABLE'));
+  const availableQuests = safeQuests.filter(q => q && (q.status === 'AVAILABLE'));
 
-  // Commits & telemetry
-  const commits = activities.filter(a => a.type === 'COMMIT');
-  const prActivities = activities.filter(a => a.type === 'PULL_REQUEST');
-  const milestoneActivities = activities.filter(a => a.type === 'MILESTONE');
+  // Activities categorization
+  const commits = safeActivities.filter(a => a && a.type === 'COMMIT');
+  const prActivities = safeActivities.filter(a => a && a.type === 'PULL_REQUEST');
+  const milestoneActivities = safeActivities.filter(a => a && a.type === 'MILESTONE');
 
   return {
     problemStatement: ps,
-    projectDescription: team.slogan || "Autonomous high-velocity agent settlement layer with instant ZK receipts",
-    teamName: team.name || "Autonomous Squad",
+    projectDescription: safeTeam.slogan || safeTeam.description || "",
+    teamName: safeTeam.name || "Unnamed Squad",
     teamMembers: members,
     assignedRoles,
     currentQuests: inProgressQuests,
     availableQuests,
     completedQuests,
-    allQuests: quests,
-    activities,
+    allQuests: safeQuests,
+    activities: safeActivities,
     recentCommits: commits,
-    pullRequests: pullRequests.length > 0 ? pullRequests : prActivities,
-    issues: issues || [],
+    pullRequests: safePRs.length > 0 ? safePRs : prActivities,
+    issues: safeIssues,
+    activeHackathon: activeHackathon || null,
     projectMilestones: {
-      total: quests.length,
+      total: safeQuests.length,
       completed: completedQuests.length,
-      progressPercent: quests.length > 0 ? Math.round((completedQuests.length / quests.length) * 100) : 0,
+      progressPercent: safeQuests.length > 0 ? Math.round((completedQuests.length / safeQuests.length) * 100) : 0,
       events: milestoneActivities
     },
     projectStatus: {
-      repoUrl: team.githubRepo,
-      branch: team.branch || 'main',
-      commitsCount: team.commitsCount || commits.length,
-      linesChanged: team.linesChanged || "+0 / -0",
-      integrityScore: team.integrityScore || 97.4,
-      lastCommitTime: team.lastCommitTime || "Recently"
+      repoUrl: safeTeam.githubRepo || null,
+      isRepoConnected: Boolean(safeTeam.githubRepo),
+      branch: safeTeam.branch || 'main',
+      commitsCount: safeTeam.commitsCount !== undefined && safeTeam.commitsCount !== null ? safeTeam.commitsCount : commits.length,
+      linesChanged: safeTeam.linesChanged || null,
+      integrityScore: safeTeam.integrityScore !== undefined && safeTeam.integrityScore !== null ? safeTeam.integrityScore : null,
+      lastCommitTime: safeTeam.lastCommitTime || null
     }
   };
 }
 
 /**
- * Filter activities by time window (1h, 3h, all)
+ * Filter activities by time window (1h, 3h, all) based on the ACTUAL current time.
+ * Handles missing, malformed, and non-parseable timestamps safely.
  */
 export function filterByTimeWindow(activities, windowType = '3h') {
-  if (windowType === 'all' || !activities || activities.length === 0) {
-    return activities || [];
+  if (!Array.isArray(activities) || activities.length === 0) {
+    return [];
   }
 
-  // Find reference time: Use latest activity timestamp or current time
-  const latestTimestamp = activities[0]?.timestamp 
-    ? new Date(activities[0].timestamp).getTime() 
-    : Date.now();
+  if (windowType === 'all') {
+    return activities.filter(act => act && typeof act === 'object');
+  }
 
+  const now = Date.now();
   const windowMinutes = windowType === '1h' ? 60 : 180;
-  const threshold = latestTimestamp - (windowMinutes * 60 * 1000);
+  const threshold = now - (windowMinutes * 60 * 1000);
 
   return activities.filter(act => {
-    if (!act.timestamp) return false;
-    const actTime = new Date(act.timestamp).getTime();
-    return actTime >= threshold;
+    if (!act || !act.timestamp) return false;
+    const parsedTime = Date.parse(act.timestamp);
+    if (isNaN(parsedTime)) return false;
+    // Event must have occurred within the last [windowMinutes] minutes up to now
+    return parsedTime >= threshold && parsedTime <= (now + 60000); // 1-minute clock skew tolerance
   });
 }
 
 /**
  * 1. TEAM SUMMARY GENERATOR
- * Identifies workstream velocity and bottlenecks across roles with evidence
+ * Identifies workstream velocity and bottlenecks strictly from real activity records.
  */
 export function generateTeamSummary(context) {
-  const { recentCommits, teamMembers, assignedRoles } = context;
+  const { recentCommits = [], teamMembers = [] } = context;
 
   if (!recentCommits || recentCommits.length === 0) {
     return {
-      text: "Insufficient telemetry evidence: No commits recorded in the repository. Team velocity cannot be computed.",
+      text: "Insufficient telemetry evidence: No commits recorded in the repository. Workstream velocity cannot be computed.",
       hasInsufficientData: true,
       evidence: [],
+      stats: { backendCommits: 0, mlCommits: 0, frontendCommits: 0, docCommits: 0 },
       workstreamHealth: {
         backend: "INSUFFICIENT_DATA",
         ml: "INSUFFICIENT_DATA",
@@ -114,71 +130,97 @@ export function generateTeamSummary(context) {
     };
   }
 
-  // Classify commits by workstream based on commit message and changed files
+  // Classify commits by workstream based on actual message & files
   const backendCommits = recentCommits.filter(c => {
     const msg = (c.metadata?.message || c.title || "").toLowerCase();
-    return msg.includes('api') || msg.includes('auth') || msg.includes('server') || msg.includes('backend') || msg.includes('route');
+    return msg.includes('api') || msg.includes('auth') || msg.includes('server') || msg.includes('backend') || msg.includes('contract') || msg.includes('solidity');
   });
 
   const mlCommits = recentCommits.filter(c => {
     const msg = (c.metadata?.message || c.title || "").toLowerCase();
-    return msg.includes('ml') || msg.includes('inference') || msg.includes('model') || msg.includes('agent') || msg.includes('langchain');
+    return msg.includes('ml') || msg.includes('inference') || msg.includes('model') || msg.includes('agent') || msg.includes('langchain') || msg.includes('ai');
   });
 
   const frontendCommits = recentCommits.filter(c => {
     const msg = (c.metadata?.message || c.title || "").toLowerCase();
-    return msg.includes('ui') || msg.includes('frontend') || msg.includes('component') || msg.includes('react') || msg.includes('hud') || msg.includes('view') || msg.includes('css');
+    return msg.includes('ui') || msg.includes('frontend') || msg.includes('component') || msg.includes('react') || msg.includes('hud') || msg.includes('css') || msg.includes('client');
   });
 
   const docCommits = recentCommits.filter(c => {
     const msg = (c.metadata?.message || c.title || "").toLowerCase();
-    return msg.includes('doc') || msg.includes('readme') || msg.includes('spec');
+    return msg.includes('doc') || msg.includes('readme') || msg.includes('spec') || msg.includes('rfc');
   });
 
-  // Collect concrete evidence references
+  // Collect concrete evidence references ONLY from real commits
   const evidence = [];
   if (backendCommits.length > 0) {
     const bc = backendCommits[0];
+    const hash = bc.metadata?.hash || bc.metadata?.commit_hash || bc.hash || null;
+    const actor = bc.actor?.name || bc.actor?.username || bc.actor?.login || "Teammate";
+    const msg = bc.metadata?.message || bc.title || "Backend commit";
     evidence.push({
       type: 'COMMIT',
       id: bc.id,
-      hash: bc.metadata?.hash || 'a12e99f',
-      actor: bc.actor?.name || 'Rachit',
-      label: `Backend active: "${bc.metadata?.message || 'Added API authentication'}"`,
-      timestamp: bc.timestamp
-    });
-  }
-  if (mlCommits.length > 0) {
-    const mc = mlCommits[0];
-    evidence.push({
-      type: 'COMMIT',
-      id: mc.id,
-      hash: mc.metadata?.hash || '3d9c70b',
-      actor: mc.actor?.name || 'Arjun',
-      label: `AI/ML active: "${mc.metadata?.message || 'Created ML inference service'}"`,
-      timestamp: mc.timestamp
-    });
-  }
-  if (docCommits.length > 0) {
-    const dc = docCommits[0];
-    evidence.push({
-      type: 'COMMIT',
-      id: dc.id,
-      hash: dc.metadata?.hash || '8f4a21e',
-      actor: dc.actor?.name || 'Kritika',
-      label: `Docs active: "${dc.metadata?.message || 'Updated documentation'}"`,
-      timestamp: dc.timestamp
+      hash,
+      actor,
+      label: `Backend active: "${msg}" by ${actor}${hash ? ` (${hash.slice(0, 7)})` : ''}`,
+      timestamp: bc.timestamp || null
     });
   }
 
-  // Synthesize Summary
+  if (mlCommits.length > 0) {
+    const mc = mlCommits[0];
+    const hash = mc.metadata?.hash || mc.metadata?.commit_hash || mc.hash || null;
+    const actor = mc.actor?.name || mc.actor?.username || mc.actor?.login || "Teammate";
+    const msg = mc.metadata?.message || mc.title || "AI/ML commit";
+    evidence.push({
+      type: 'COMMIT',
+      id: mc.id,
+      hash,
+      actor,
+      label: `AI/ML active: "${msg}" by ${actor}${hash ? ` (${hash.slice(0, 7)})` : ''}`,
+      timestamp: mc.timestamp || null
+    });
+  }
+
+  if (frontendCommits.length > 0) {
+    const fc = frontendCommits[0];
+    const hash = fc.metadata?.hash || fc.metadata?.commit_hash || fc.hash || null;
+    const actor = fc.actor?.name || fc.actor?.username || fc.actor?.login || "Teammate";
+    const msg = fc.metadata?.message || fc.title || "Frontend commit";
+    evidence.push({
+      type: 'COMMIT',
+      id: fc.id,
+      hash,
+      actor,
+      label: `Frontend active: "${msg}" by ${actor}${hash ? ` (${hash.slice(0, 7)})` : ''}`,
+      timestamp: fc.timestamp || null
+    });
+  }
+
+  if (docCommits.length > 0) {
+    const dc = docCommits[0];
+    const hash = dc.metadata?.hash || dc.metadata?.commit_hash || dc.hash || null;
+    const actor = dc.actor?.name || dc.actor?.username || dc.actor?.login || "Teammate";
+    const msg = dc.metadata?.message || dc.title || "Documentation commit";
+    evidence.push({
+      type: 'COMMIT',
+      id: dc.id,
+      hash,
+      actor,
+      label: `Docs active: "${msg}" by ${actor}${hash ? ` (${hash.slice(0, 7)})` : ''}`,
+      timestamp: dc.timestamp || null
+    });
+  }
+
+  // Synthesize Summary without hardcoding fictional names
   let summaryText = "";
-  if (backendCommits.length > 0 && mlCommits.length > 0 && frontendCommits.length === 0) {
-    summaryText = "Your backend and ML components are progressing well, but frontend integration has not started.";
+  if (backendCommits.length > 0 && frontendCommits.length === 0) {
+    summaryText = `Backend workstream is active (${backendCommits.length} commits), but frontend UI integration has no recorded commits in the repository.`;
   } else if (frontendCommits.length > 0 && backendCommits.length > 0) {
-    summaryText = "Full-stack development is synchronized across backend and UI workstreams, with active telemetry flow.";
-  } else if (backendCommits.length > 0 && mlCommits.length === 0) {
-    summaryText = "Core backend APIs are operational, but the autonomous AI/ML model integration is currently awaiting initial deployment.";
+    summaryText = `Full-stack development is synchronized across backend (${backendCommits.length}) and UI (${frontendCommits.length}) workstreams.`;
+  } else if (mlCommits.length > 0 && frontendCommits.length === 0) {
+    summaryText = `AI/ML components have active commits (${mlCommits.length}), but no frontend hooks or interface commits have been detected yet.`;
   } else {
     summaryText = `Sprint is actively moving with ${recentCommits.length} verified commits across team roles.`;
   }
@@ -204,18 +246,19 @@ export function generateTeamSummary(context) {
 
 /**
  * 2. PROGRESS SUMMARY GENERATOR
- * Computes exact changes in 1h, 3h, and full hackathon windows
+ * Computes exact changes in 1h, 3h, and full hackathon windows.
+ * Filters strictly against actual current time.
  */
 export function generateProgressSummary(context, timeWindow = '3h') {
-  const { activities, recentCommits, pullRequests, completedQuests } = context;
+  const { activities = [], recentCommits = [], pullRequests = [], completedQuests = [] } = context;
 
   const windowActivities = filterByTimeWindow(activities, timeWindow);
 
   if (windowActivities.length === 0) {
-    const windowLabel = timeWindow === '1h' ? 'last 1 hour' : timeWindow === '3h' ? 'last 3 hours' : 'hackathon';
+    const windowLabel = timeWindow === '1h' ? 'last 1 hour' : timeWindow === '3h' ? 'last 3 hours' : 'entire hackathon';
     return {
       window: timeWindow,
-      text: `Insufficient evidence in the ${windowLabel}: No commits or pull requests were logged during this period.`,
+      text: `Insufficient evidence in the ${windowLabel}: No commits, pull requests, or telemetry events were recorded during this period.`,
       hasInsufficientData: true,
       delta: {
         commits: 0,
@@ -229,7 +272,7 @@ export function generateProgressSummary(context, timeWindow = '3h') {
     };
   }
 
-  // Aggregate metrics
+  // Aggregate metrics from real events
   let totalAdditions = 0;
   let totalDeletions = 0;
   let commitsCount = 0;
@@ -244,8 +287,8 @@ export function generateProgressSummary(context, timeWindow = '3h') {
 
     if (isCommit) {
       commitsCount++;
-      totalAdditions += act.metadata?.additions || 0;
-      totalDeletions += act.metadata?.deletions || 0;
+      totalAdditions += (Number(act.metadata?.additions) || 0);
+      totalDeletions += (Number(act.metadata?.deletions) || 0);
     }
     if (isPR && act.metadata?.is_merged) {
       prsMerged++;
@@ -254,24 +297,29 @@ export function generateProgressSummary(context, timeWindow = '3h') {
       milestonesCount++;
     }
 
-    if (act.actor?.name) {
-      authorsSet.add(act.actor.name);
+    const actorName = act.actor?.name || act.actor?.username || act.actor?.login;
+    if (actorName) {
+      authorsSet.add(actorName);
     }
 
-    const timeStr = act.timestamp 
-      ? new Date(act.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })
-      : "Recent";
+    let timeStr = "Recent";
+    if (act.timestamp) {
+      const parsed = new Date(act.timestamp);
+      if (!isNaN(parsed.getTime())) {
+        timeStr = parsed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+      }
+    }
 
     return {
       id: act.id,
       type: act.type,
       time: timeStr,
-      rawTimestamp: act.timestamp,
-      actor: act.actor?.name || "Builder",
-      avatar: act.actor?.avatar_url || act.actor?.avatar,
+      rawTimestamp: act.timestamp || null,
+      actor: actorName || "Contributor",
+      avatar: act.actor?.avatar_url || act.actor?.avatar || null,
       title: act.metadata?.message || act.metadata?.title || act.title || "Telemetry event",
       diff: act.metadata?.additions !== undefined ? `+${act.metadata.additions} / -${act.metadata.deletions}` : act.metadata?.diff,
-      hash: act.metadata?.hash || (act.github_event_id ? act.github_event_id.slice(-7) : undefined),
+      hash: act.metadata?.hash || act.metadata?.commit_hash || act.hash || (act.github_event_id ? act.github_event_id.slice(-7) : undefined),
       branch: act.metadata?.branch || act.branch || 'main'
     };
   });
@@ -280,11 +328,14 @@ export function generateProgressSummary(context, timeWindow = '3h') {
 
   let narrative = "";
   if (timeWindow === '1h') {
-    narrative = `During the last 1 hour, ${activeAuthors.join(' and ') || 'the team'} deployed ${commitsCount} commit(s) (+${totalAdditions} / -${totalDeletions} lines). Notable changes: ${events.slice(0, 2).map(e => `"${e.title}" by ${e.actor}`).join(', ')}.`;
+    narrative = `During the last 1 hour, ${activeAuthors.length > 0 ? activeAuthors.join(', ') : 'the squad'} recorded ${commitsCount} commit(s) (+${totalAdditions} / -${totalDeletions} lines). Notable changes: ${events.slice(0, 2).map(e => `"${e.title}" by ${e.actor}`).join('; ')}.`;
   } else if (timeWindow === '3h') {
-    narrative = `During the last 3 hours, ${activeAuthors.length} active builders shipped ${commitsCount} commits, merged ${prsMerged} PR(s), and established backend & ML microservices with +${totalAdditions} net lines added.`;
+    narrative = `During the last 3 hours, ${activeAuthors.length} active builder(s) recorded ${commitsCount} commit(s), merged ${prsMerged} PR(s), with +${totalAdditions} net additions.`;
   } else {
-    narrative = `Across the entire hackathon, ${context.teamName} has authored ${context.projectStatus.commitsCount} verified commits (+14,290 / -1,120 lines), conquering ${completedQuests.length} milestone quests with a 97.4% originality audit score.`;
+    const integrityNote = context.projectStatus.integrityScore !== null 
+      ? ` with an integrity audit score of ${context.projectStatus.integrityScore}%` 
+      : '';
+    narrative = `Across the hackathon, ${context.teamName} has recorded ${context.projectStatus.commitsCount} verified commit(s)${totalAdditions > 0 ? ` (+${totalAdditions} / -${totalDeletions} lines)` : ''}, completing ${completedQuests.length} milestone quest(s)${integrityNote}.`;
   }
 
   return {
@@ -305,125 +356,114 @@ export function generateProgressSummary(context, timeWindow = '3h') {
 
 /**
  * 3. BLOCKER DETECTION
- * Identifies possible API mismatches, missing dependencies, unfinished tasks,
- * inactive workstreams, and integration problems with exact causal attribution.
+ * Identifies blockers, separating observed evidence from inferred possibilities.
+ * Never classifies suspected cheating automatically.
  */
 export function detectBlockers(context) {
-  const { recentCommits, currentQuests, teamMembers, issues, pullRequests } = context;
+  const { recentCommits = [], currentQuests = [], teamMembers = [], issues = [], pullRequests = [] } = context;
   const blockers = [];
 
-  // Check 1: Inactive Workstreams (Role Disparity)
-  const activeActors = new Set(recentCommits.map(c => c.actor?.name));
-  const frontendMember = teamMembers.find(m => m.role === 'Frontend');
-  if (frontendMember && !activeActors.has(frontendMember.name) && !activeActors.has("Sophia")) {
-    blockers.push({
-      id: "blk-inactive-frontend",
-      category: "INACTIVE_WORKSTREAM",
-      severity: "WARNING",
-      title: "Frontend Workstream Inactivity",
-      description: `Frontend role (${frontendMember.name}) has no recorded commits in the active telemetry window while Backend & ML pushed 615+ lines.`,
-      causedBy: {
-        type: "ROSTER_ANALYSIS",
-        detail: `0 commits by ${frontendMember.name} in recent commits list (last commit was >2 hours ago).`
-      },
-      remediation: "Sync with Frontend builder to initialize React components consuming the new ML endpoints."
-    });
-  }
+  // Check 1: Inactive Workstreams / Missing Role Activity (Inferred Possibility)
+  const activeActors = new Set(
+    recentCommits.map(c => c.actor?.name || c.actor?.username || c.actor?.login).filter(Boolean)
+  );
 
-  // Check 2: API Mismatch / Integration Gap
-  const hasMlService = recentCommits.some(c => (c.metadata?.message || "").toLowerCase().includes("ml inference"));
-  const hasFrontendIntegration = recentCommits.some(c => (c.metadata?.message || "").toLowerCase().includes("connect") || (c.metadata?.message || "").toLowerCase().includes("fetch ml"));
-  if (hasMlService && !hasFrontendIntegration) {
-    blockers.push({
-      id: "blk-integration-ml",
-      category: "INTEGRATION_PROBLEM",
-      severity: "CRITICAL",
-      title: "Unintegrated ML Inference Service",
-      description: "FastAPI ML service deployed on branch 'ai-inference' (port 8000), but frontend continues rendering static mock telemetry.",
-      causedBy: {
-        type: "COMMIT",
-        hash: "3d9c70b",
-        actor: "Arjun",
-        title: "Created ML inference service",
-        detail: "Commit 3d9c70b authored 430 lines in /ml/inference.py without corresponding frontend client hooks."
-      },
-      remediation: "Create API service client in src/services/ai.js and hook into Agent HUD interface."
-    });
-  }
+  teamMembers.forEach(member => {
+    if (member && member.name && !activeActors.has(member.name)) {
+      blockers.push({
+        id: `blk-inferred-${member.id || member.name.toLowerCase().replace(/\s+/g, '-')}`,
+        category: "INFERRED_WORKSTREAM_GAP",
+        severity: "WARNING",
+        title: `Workstream Gap: ${member.role || 'Member'} (${member.name})`,
+        description: `Observed evidence: 0 commits recorded under ${member.name} (${member.role || 'Unspecified Role'}). Inferred possibility: May be conducting off-repo research, blocked by unmerged dependencies, or designing architecture.`,
+        causedBy: {
+          type: "ROSTER_AUDIT",
+          detail: `0 commits attributed to ${member.name} in available repository telemetry.`
+        },
+        remediation: `Check in with ${member.name} during the next standup to confirm if they need unblocking or help pushing local branches.`
+      });
+    }
+  });
 
-  // Check 3: API Mismatch / CORS from Issues
-  const corsIssue = (issues || []).find(i => (i.title || "").toLowerCase().includes("cors"));
-  if (corsIssue) {
-    blockers.push({
-      id: "blk-cors-mismatch",
-      category: "API_MISMATCH",
-      severity: "CRITICAL",
-      title: "API CORS Policy Mismatch",
-      description: "Frontend HTTP requests to /api/v1/inference fail due to missing Access-Control-Allow-Origin header in backend middleware.",
-      causedBy: {
-        type: "ISSUE",
-        number: corsIssue.number || 8,
-        author: corsIssue.author || "Sophia Zhang",
-        title: corsIssue.title,
-        detail: "Reported in Issue #8: 'CORS policy blocking localhost:5173 on /api/v1/inference'."
-      },
-      remediation: "Add CORSMiddleware with allow_origins=['http://localhost:5173'] in FastAPI backend."
-    });
-  }
+  // Check 2: Actual Open Issues
+  issues.forEach(issue => {
+    const title = issue.title || "";
+    const isBlocker = title.toLowerCase().includes("cors") ||
+      title.toLowerCase().includes("bug") ||
+      title.toLowerCase().includes("error") ||
+      title.toLowerCase().includes("block") ||
+      issue.severity === 'HIGH' ||
+      issue.severity === 'CRITICAL';
 
-  // Check 4: Missing Dependencies
-  const typeIssue = (issues || []).find(i => (i.title || "").toLowerCase().includes("typescript") || (i.title || "").toLowerCase().includes("interfaces"));
-  if (typeIssue) {
-    blockers.push({
-      id: "blk-missing-types",
-      category: "MISSING_DEPENDENCY",
-      severity: "WARNING",
-      title: "Missing Type Definitions for Agent Protocol",
-      description: "Python ML service returns dynamic JSON payload without TypeScript schema definitions in the client layer.",
-      causedBy: {
-        type: "ISSUE",
-        number: typeIssue.number || 9,
-        author: typeIssue.author || "Sophia Zhang",
-        title: typeIssue.title,
-        detail: "Reported in Issue #9: 'Missing TypeScript interfaces for AgentDecision payload'."
-      },
-      remediation: "Export AgentDecision and SettlementReceipt interfaces in src/types/agent.ts."
-    });
-  }
+    if (isBlocker) {
+      blockers.push({
+        id: `blk-issue-${issue.number || issue.id || Math.random()}`,
+        category: "REPORTED_ISSUE",
+        severity: issue.severity === 'CRITICAL' ? 'CRITICAL' : 'WARNING',
+        title: `Reported Issue #${issue.number || '?'}: ${title}`,
+        description: issue.description || `Active issue #${issue.number} flagged in repository issue tracker.`,
+        causedBy: {
+          type: "ISSUE",
+          number: issue.number,
+          author: issue.author || issue.user?.login || "Issue Reporter",
+          title: issue.title,
+          detail: `Issue #${issue.number || '?'}: "${title}" authored by ${issue.author || 'contributor'}.`
+        },
+        remediation: issue.remediation || `Review and resolve issue #${issue.number} before the final submission deadline.`
+      });
+    }
+  });
 
-  // Check 5: Unfinished Tasks (In-Progress Quest Lags)
-  const laggingQuest = currentQuests.find(q => q.id === 'q-6' || (q.title || "").includes("Integration"));
-  if (laggingQuest) {
-    blockers.push({
-      id: "blk-unfinished-quest",
-      category: "UNFINISHED_TASK",
-      severity: "ADVISORY",
-      title: `Unfinished Milestone: "${laggingQuest.title}"`,
-      description: `Quest is currently ${laggingQuest.progress}% complete with unfulfilled checklist items.`,
-      causedBy: {
-        type: "QUEST_STATUS",
-        id: laggingQuest.id,
-        title: laggingQuest.title,
-        detail: `Quest ${laggingQuest.id} has ${laggingQuest.checklist?.filter(c => !c.done).length || 2} remaining checklist items.`
-      },
-      remediation: "Complete remaining checklist verification proofs to unlock +250 XP for the squad."
-    });
-  }
+  // Check 3: Unfinished In-Progress Quests
+  currentQuests.forEach(quest => {
+    const unfulfilledItems = (quest.checklist || []).filter(c => !c.done);
+    if (unfulfilledItems.length > 0) {
+      blockers.push({
+        id: `blk-quest-${quest.id}`,
+        category: "UNFINISHED_MILESTONE",
+        severity: "ADVISORY",
+        title: `Incomplete Deliverable: "${quest.title}"`,
+        description: `Quest is currently ${quest.progress || 0}% complete with ${unfulfilledItems.length} checklist item(s) unfulfilled.`,
+        causedBy: {
+          type: "QUEST_STATUS",
+          id: quest.id,
+          title: quest.title,
+          detail: `Quest ${quest.id}: ${unfulfilledItems.length} task(s) unfulfilled (${unfulfilledItems.map(t => t.task).slice(0, 2).join(', ')}).`
+        },
+        remediation: "Provide verification proof for the remaining quest requirements to claim milestone XP."
+      });
+    }
+  });
 
   // Fallback if no issues found
   if (blockers.length === 0) {
-    blockers.push({
-      id: "blk-none",
-      category: "CLEAR",
-      severity: "SUCCESS",
-      title: "Zero Critical Telemetry Blockers",
-      description: "No code freezes, build failures, or broken dependencies detected in current branch telemetry.",
-      causedBy: {
-        type: "AUDIT",
-        detail: "All active branch checks passing with 0 reported compile errors."
-      },
-      remediation: "Maintain current development velocity towards final MVP submission."
-    });
+    if (recentCommits.length === 0) {
+      blockers.push({
+        id: "blk-insufficient",
+        category: "INSUFFICIENT_DATA",
+        severity: "ADVISORY",
+        title: "No Repository Activity Detected",
+        description: "Connect a GitHub repository or push sprint commits to activate automated telemetry blocker detection.",
+        causedBy: {
+          type: "STATUS",
+          detail: "Repository not connected or no commits recorded."
+        },
+        remediation: "Link your GitHub repository in the Team Workspace to stream live telemetry."
+      });
+    } else {
+      blockers.push({
+        id: "blk-none",
+        category: "CLEAR",
+        severity: "SUCCESS",
+        title: "Zero Critical Telemetry Blockers",
+        description: "No code freezes, build failures, or unfulfilled checklist items detected in current telemetry.",
+        causedBy: {
+          type: "AUDIT",
+          detail: "All active checks passing with 0 reported blockers."
+        },
+        remediation: "Maintain current development pace towards final Build Passport submission."
+      });
+    }
   }
 
   return blockers;
@@ -431,100 +471,185 @@ export function detectBlockers(context) {
 
 /**
  * 4. NEXT ACTION RECOMMENDATION
- * Evaluates the highest-leverage task to maximize jury score & XP
+ * Evaluates the highest-leverage task based strictly on actual project state.
  */
 export function recommendNextAction(context) {
-  const { problemStatement, completedQuests, recentCommits } = context;
+  const { currentQuests = [], availableQuests = [], recentCommits = [], projectStatus = {} } = context;
 
-  // Detect if ML service was recently pushed
-  const hasMlService = recentCommits.some(c => (c.metadata?.message || "").toLowerCase().includes("ml inference"));
+  // Case 1: No repository connected
+  if (!projectStatus.repoUrl && recentCommits.length === 0) {
+    return {
+      title: "Connect GitHub Repository to Workspace",
+      targetRole: "Team Leader",
+      targetAssignee: context.teamMembers[0]?.name || "Team Leader",
+      priority: "CRITICAL",
+      xpReward: 100,
+      judgingImpact: "Required for Automated Build Passport Eligibility",
+      whyNow: "Without a connected repository, the squad cannot stream commit telemetry, verify code originality, or mint a verifiable Build Passport for judging.",
+      causedBy: {
+        type: "REPOSITORY_STATUS",
+        detail: "No active GitHub repository linked to this workspace."
+      },
+      executionChecklist: [
+        { step: 1, text: "Open Team Workspace (/team) and click 'Connect GitHub Repository'" },
+        { step: 2, text: "Authorize GitHub OAuth or select repository from installed repos" },
+        { step: 3, text: "Push first commit during hackathon window to establish provenance baseline" }
+      ]
+    };
+  }
 
+  // Case 2: In-Progress quest available
+  if (currentQuests.length > 0) {
+    const q = currentQuests[0];
+    const remainingTasks = (q.checklist || []).filter(c => !c.done);
+    return {
+      title: `Complete In-Progress Milestone: "${q.title}"`,
+      targetRole: q.role || "Squad",
+      targetAssignee: context.teamMembers.find(m => m.role === q.role)?.name || context.teamMembers[0]?.name || "Squad",
+      priority: "HIGH_VALUE",
+      xpReward: q.xpReward || 250,
+      judgingImpact: `+${q.xpReward || 250} XP towards Team Vault and milestone leaderboard rank`,
+      whyNow: `This milestone is already underway (${q.progress || 0}%). Finishing the remaining ${remainingTasks.length} task(s) unlocks XP and qualifies the deliverable for Build Passport inclusion.`,
+      causedBy: {
+        type: "QUEST_PROGRESS",
+        id: q.id,
+        detail: `Quest "${q.title}" has ${remainingTasks.length} pending task(s).`
+      },
+      executionChecklist: remainingTasks.length > 0 
+        ? remainingTasks.map((t, idx) => ({ step: idx + 1, text: t.task }))
+        : [{ step: 1, text: "Review evidence requirements and claim quest XP" }]
+    };
+  }
+
+  // Case 3: Next available quest
+  if (availableQuests.length > 0) {
+    const q = availableQuests[0];
+    return {
+      title: `Unlock Next Milestone: "${q.title}"`,
+      targetRole: q.role || "Squad",
+      targetAssignee: context.teamMembers[0]?.name || "Squad",
+      priority: "RECOMMENDED",
+      xpReward: q.xpReward || 200,
+      judgingImpact: `+${q.xpReward || 200} XP towards milestone completion`,
+      whyNow: `Adopting "${q.title}" establishes the next core deliverable for your hackathon submission.`,
+      causedBy: {
+        type: "QUEST_BOARD",
+        id: q.id,
+        detail: `Next sequential milestone in ${q.phase || 'hackathon roadmap'}.`
+      },
+      executionChecklist: (q.checklist || []).map((t, idx) => ({ step: idx + 1, text: t.task }))
+    };
+  }
+
+  // Case 4: All milestones completed
   return {
-    title: "Connect ML Inference API to Frontend UI",
-    targetRole: "Frontend / UI/UX",
-    targetAssignee: "Sophia Zhang",
-    priority: "HIGHEST_VALUE",
-    xpReward: 300,
-    judgingImpact: "+18 Pts on Technical Execution & Integration Rubric",
-    whyNow: "Backend inference endpoint was deployed 42m ago by Arjun (commit 3d9c70b). With 31 hours remaining in the sprint, connecting the intelligence layer to an interactive demo is the single highest-value milestone to prepare for jury evaluation.",
+    title: "Finalize Video Presentation & Seal Build Passport",
+    targetRole: "Team Leader / Presentation",
+    targetAssignee: context.teamMembers[0]?.name || "Team Leader",
+    priority: "FINALE",
+    xpReward: 500,
+    judgingImpact: "Final Qualification for Jury Evaluation",
+    whyNow: "All development milestones are complete. Record your 3-minute video walkthrough and seal the cryptographic Build Passport.",
     causedBy: {
-      type: "COMMIT",
-      hash: "3d9c70b",
-      actor: "Arjun",
-      title: "Created ML inference service",
-      timestamp: "10:58 PM",
-      detail: "Triggered by Arjun's ML microservice deployment on branch 'ai-inference' without matching frontend consumer."
+      type: "COMPLETION",
+      detail: "All registered quests successfully completed."
     },
     executionChecklist: [
-      { step: 1, text: "Create API service client in src/services/ai.js pointing to /api/v1/inference" },
-      { step: 2, text: "Build interactive Agent Decision HUD card with live query submission" },
-      { step: 3, text: "Verify sub-800ms inference latency receipt and display in transaction log" }
+      { step: 1, text: "Record 3-minute Loom or YouTube product demonstration" },
+      { step: 2, text: "Attach demo video URL in Build Passport settings" },
+      { step: 3, text: "Click 'Seal & Submit to Jury' on the Build Passport page" }
     ]
   };
 }
 
 /**
  * 5. TEAM HEALTH EVALUATION
- * Computes collaboration status, development status, integration status, and risk level
+ * Computes collaboration, velocity, and integration from real activity records.
  */
 export function computeTeamHealth(context) {
-  const { recentCommits, teamMembers, projectStatus } = context;
+  const { recentCommits = [], teamMembers = [], projectStatus = {}, activeHackathon = null } = context;
 
-  // Collaboration status
-  const activeCount = new Set(recentCommits.map(c => c.actor?.name)).size;
-  const totalMembers = teamMembers.length || 3;
-  const collabScore = Math.min(100, Math.round((activeCount / totalMembers) * 100));
+  // Active committing members
+  const activeActors = new Set(
+    recentCommits.map(c => c.actor?.name || c.actor?.username || c.actor?.login).filter(Boolean)
+  );
+  const totalMembers = teamMembers.length || 1;
+  const collabScore = Math.min(100, Math.round((activeActors.size / totalMembers) * 100));
 
   let collabStatus = "OPTIMAL";
-  let collabDetail = "Active cross-branch collaboration across multiple team members.";
-  if (collabScore < 50) {
+  let collabDetail = `${activeActors.size} of ${totalMembers} squad members actively committing code.`;
+  if (recentCommits.length === 0) {
+    collabStatus = "INSUFFICIENT_DATA";
+    collabDetail = "No commits recorded to measure collaboration.";
+  } else if (collabScore < 50) {
     collabStatus = "STALLED";
-    collabDetail = "Only 1 member is actively committing code; risk of knowledge silo.";
+    collabDetail = `Only ${activeActors.size} member is committing; potential knowledge silo or workstream stall.`;
   } else if (collabScore < 80) {
     collabStatus = "MODERATE";
-    collabDetail = "2 of 3 builders actively committing; review sync needed.";
+    collabDetail = `${activeActors.size} of ${totalMembers} members committing; cross-workstream check-in suggested.`;
   }
 
   // Development status
   const commitsCount = recentCommits.length;
-  const devScore = Math.min(100, Math.round(commitsCount * 18));
-  let devStatus = "HIGH_VELOCITY";
-  let devDetail = `${(commitsCount * 1.4).toFixed(1)} commits/hr. Velocity exceeds hackathon median.`;
-  if (commitsCount === 0) {
-    devStatus = "IDLE";
-    devDetail = "Zero commits detected in telemetry window.";
-  } else if (commitsCount < 2) {
-    devStatus = "MODERATE_VELOCITY";
-    devDetail = "Pacing is steady but approaching crunch period.";
+  let devScore = 0;
+  let devStatus = "IDLE";
+  let devDetail = "Zero commits detected in repository.";
+  if (commitsCount > 0) {
+    devScore = Math.min(100, Math.round(commitsCount * 12));
+    devStatus = commitsCount >= 10 ? "HIGH_VELOCITY" : "MODERATE_VELOCITY";
+    devDetail = `${commitsCount} verified commits logged in sprint telemetry.`;
   }
 
-  // Integration status
-  const hasBackend = recentCommits.some(c => (c.metadata?.message || "").toLowerCase().includes("api"));
-  const hasMl = recentCommits.some(c => (c.metadata?.message || "").toLowerCase().includes("ml"));
-  const hasFrontend = recentCommits.some(c => (c.metadata?.message || "").toLowerCase().includes("ui") || (c.metadata?.message || "").toLowerCase().includes("hud"));
+  // Integration status from commit contents
+  const hasBackend = recentCommits.some(c => (c.metadata?.message || c.title || "").toLowerCase().includes("api") || (c.metadata?.message || c.title || "").toLowerCase().includes("contract"));
+  const hasMl = recentCommits.some(c => (c.metadata?.message || c.title || "").toLowerCase().includes("ml") || (c.metadata?.message || c.title || "").toLowerCase().includes("inference"));
+  const hasFrontend = recentCommits.some(c => (c.metadata?.message || c.title || "").toLowerCase().includes("ui") || (c.metadata?.message || c.title || "").toLowerCase().includes("hud") || (c.metadata?.message || c.title || "").toLowerCase().includes("frontend"));
 
-  let integrationScore = 45;
-  let integrationStatus = "LAGGING";
-  let integrationDetail = "Backend and ML services are running, but frontend integration is not yet connected.";
-  if (hasBackend && hasMl && hasFrontend) {
+  let integrationScore = 30;
+  let integrationStatus = "NOT_STARTED";
+  let integrationDetail = "Integration between microservices and client UI has not started.";
+
+  if (hasBackend && hasFrontend) {
     integrationScore = 90;
     integrationStatus = "SYNCHRONIZED";
-    integrationDetail = "Full-stack integration verified across contracts, services, and UI.";
+    integrationDetail = "Full-stack integration verified across backend contracts/APIs and client UI.";
+  } else if (hasBackend || hasMl) {
+    integrationScore = 55;
+    integrationStatus = "PARTIAL";
+    integrationDetail = "Backend/core logic has commits, but frontend consumer commits are pending.";
+  } else if (commitsCount === 0) {
+    integrationScore = 0;
+    integrationStatus = "INSUFFICIENT_DATA";
+    integrationDetail = "No commits available to evaluate integration.";
+  }
+
+  // Calculate real remaining time safely
+  let remainingHoursText = "Active sprint";
+  if (activeHackathon?.endsAt) {
+    const endMs = Date.parse(activeHackathon.endsAt);
+    if (!isNaN(endMs)) {
+      const diffHours = Math.max(0, Math.round((endMs - Date.now()) / (3600 * 1000)));
+      remainingHoursText = `${diffHours}h remaining`;
+    }
   }
 
   // Risk Level
-  let riskLevel = "MEDIUM";
-  let riskColor = "var(--accent-amber)";
-  let riskJustification = "Integration bottleneck detected. If frontend does not begin consuming the ML service within 6 hours, live presentation risk escalates to HIGH.";
+  let riskLevel = "LOW";
+  let riskColor = "var(--accent-emerald)";
+  let riskJustification = "All systems progressing with balanced contributions.";
 
-  if (integrationScore >= 80 && collabScore >= 75) {
-    riskLevel = "LOW";
-    riskColor = "var(--accent-emerald)";
-    riskJustification = "All systems progressing on schedule with balanced squad contributions.";
-  } else if (collabScore < 40 || commitsCount === 0) {
+  if (commitsCount === 0) {
+    riskLevel = "MODERATE";
+    riskColor = "var(--accent-amber)";
+    riskJustification = `No commits recorded yet. Connect repository to initiate telemetry tracking (${remainingHoursText}).`;
+  } else if (collabScore < 40) {
     riskLevel = "HIGH";
     riskColor = "var(--accent-rose)";
-    riskJustification = "Severe workstream stall. Immediate mentor or team alignment session recommended.";
+    riskJustification = `Severe collaboration imbalance: only ${activeActors.size} member is authoring code.`;
+  } else if (integrationScore < 50) {
+    riskLevel = "MEDIUM";
+    riskColor = "var(--accent-amber)";
+    riskJustification = `Workstream disparity: core services deployed without UI client integration (${remainingHoursText}).`;
   }
 
   return {
@@ -532,7 +657,7 @@ export function computeTeamHealth(context) {
       status: collabStatus,
       score: collabScore,
       detail: collabDetail,
-      activeMembers: activeCount,
+      activeMembers: activeActors.size,
       totalMembers
     },
     development: {
@@ -550,179 +675,197 @@ export function computeTeamHealth(context) {
       level: riskLevel,
       color: riskColor,
       justification: riskJustification,
-      integrityAuditScore: projectStatus.integrityScore || 97.4
+      integrityAuditScore: projectStatus.integrityScore !== null ? projectStatus.integrityScore : null
     }
   };
 }
 
 /**
  * 6. AUTOMATIC QUEST SUGGESTIONS
- * Analyzes gaps and returns structured quest suggestions ready to adopt
+ * Suggests quests grounded in real project gaps.
  */
 export function suggestQuests(context) {
-  const { allQuests } = context;
+  const { allQuests = [], recentCommits = [], projectStatus = {} } = context;
 
-  // Check if quest already added to prevent duplicates
-  const existingTitles = new Set(allQuests.map(q => q.title.toLowerCase()));
+  const existingTitles = new Set(allQuests.map(q => (q.title || "").toLowerCase()));
+  const suggestions = [];
 
-  const suggestions = [
-    {
-      id: "ai-quest-ml-frontend",
+  // Suggestion 1: If repo not connected
+  if (!projectStatus.repoUrl && !existingTitles.has("connect github repository")) {
+    suggestions.push({
+      id: "ai-quest-connect-repo",
+      phase: "Phase 1: Genesis",
+      title: "Connect GitHub repository to workspace",
+      description: "Link team repository to stream live commit telemetry, verify code originality, and unlock Build Passport minting.",
+      tier: "Silver",
+      xpReward: 150,
+      status: "AVAILABLE",
+      claimed: false,
+      progress: 0,
+      checklist: [
+        { task: "Connect GitHub OAuth in Team Workspace", done: false },
+        { task: "Push initial commit to main branch", done: false }
+      ],
+      causedBy: {
+        type: "STATUS",
+        detail: "Identified gap: Repository not yet associated with HackForge workspace."
+      },
+      isAiSuggested: true
+    });
+  }
+
+  // Suggestion 2: If integration tests not observed
+  const hasTests = recentCommits.some(c => (c.metadata?.message || c.title || "").toLowerCase().includes("test"));
+  if (!hasTests && recentCommits.length > 0 && !existingTitles.has("implement automated integration tests")) {
+    suggestions.push({
+      id: "ai-quest-test-suite",
       phase: "Phase 3: Integration",
-      title: "Connect ML inference API to frontend",
-      description: "Wire the Python FastAPI inference microservice to the React client, rendering real-time autonomous agent decisions.",
+      title: "Implement automated integration tests",
+      description: "Author and pass unit or end-to-end integration tests verifying core application logic.",
       tier: "Gold",
+      xpReward: 250,
+      status: "AVAILABLE",
+      claimed: false,
+      progress: 0,
+      checklist: [
+        { task: "Write test suite for core service/contract logic", done: false },
+        { task: "Verify passing test run in local environment or CI", done: false }
+      ],
+      causedBy: {
+        type: "TELEMETRY_AUDIT",
+        detail: "Zero commits with automated test declarations detected in current repository history."
+      },
+      isAiSuggested: true
+    });
+  }
+
+  // Suggestion 3: Video walkthrough
+  if (!existingTitles.has("record 3-minute video presentation")) {
+    suggestions.push({
+      id: "ai-quest-video-demo",
+      phase: "Phase 4: Finale & Passport",
+      title: "Record 3-minute video presentation",
+      description: "Film a concise product walkthrough covering problem statement, live architecture, and demo workflow for judges.",
+      tier: "Legendary",
       xpReward: 300,
       status: "AVAILABLE",
       claimed: false,
       progress: 0,
       checklist: [
-        { task: "Implement client fetch handler for /api/v1/inference endpoint", done: false },
-        { task: "Render live agent reasoning trace and confidence score in UI", done: false },
-        { task: "Verify sub-800ms end-to-end latency with network telemetry badge", done: false }
+        { task: "Record 3-minute demo covering problem, architecture, and live usage", done: false },
+        { task: "Attach video URL to Build Passport submission", done: false }
       ],
       causedBy: {
-        type: "COMMIT",
-        hash: "3d9c70b",
-        actor: "Arjun",
-        title: "Created ML inference service",
-        detail: "Caused by Arjun's ML microservice commit with no corresponding frontend consumer."
+        type: "JURY_READINESS",
+        detail: "Standard hackathon jury requirement: video walkthrough mandatory for final placement."
       },
       isAiSuggested: true
-    },
-    {
-      id: "ai-quest-cors-types",
-      phase: "Phase 3: Integration",
-      title: "Resolve CORS & Implement Type-Safe Agent Client",
-      description: "Configure backend CORS origins and declare TypeScript interfaces for the AgentDecision and SettlementReceipt contracts.",
-      tier: "Silver",
-      xpReward: 200,
-      status: "AVAILABLE",
-      claimed: false,
-      progress: 0,
-      checklist: [
-        { task: "Add http://localhost:5173 to backend CORSMiddleware origins", done: false },
-        { task: "Export AgentDecision and SettlementReceipt interfaces in types/", done: false },
-        { task: "Confirm 0 console network errors on initial dashboard load", done: false }
-      ],
-      causedBy: {
-        type: "ISSUE",
-        number: 8,
-        actor: "Sophia Zhang",
-        title: "CORS policy blocking localhost:5173",
-        detail: "Caused by open issue #8 reporting cross-origin request failure."
-      },
-      isAiSuggested: true
-    }
-  ];
+    });
+  }
 
   return suggestions.filter(s => !existingTitles.has(s.title.toLowerCase()));
 }
 
 /**
  * 7. DAILY / HOURLY STANDUP GENERATOR
- * Generates structured standup with Completed, In Progress, Blocked, Next
+ * Generates structured standup from actual events and quests.
+ * Produces a clear empty standup when no events exist.
  */
 export function generateStandup(context, mode = 'hourly') {
-  const { recentCommits, currentQuests, completedQuests, issues } = context;
+  const { recentCommits = [], currentQuests = [], completedQuests = [], issues = [], activities = [] } = context;
 
   const isHourly = mode === 'hourly';
+  const targetActivities = isHourly ? filterByTimeWindow(activities, '3h') : activities;
 
-  const completed = [
-    {
-      item: "Added API authentication & JWT token verification middleware",
-      author: "Rachit",
-      hash: "a12e99f",
-      time: "10:42 PM",
-      causedBy: "Commit a12e99f"
-    },
-    {
-      item: "Created FastAPI ML inference service with LangChain agent pipeline",
-      author: "Arjun",
-      hash: "3d9c70b",
-      time: "10:58 PM",
-      causedBy: "Commit 3d9c70b"
-    },
-    {
-      item: "Updated architecture documentation, API schemas, and README setup guide",
-      author: "Kritika",
-      hash: "8f4a21e",
-      time: "11:12 PM",
-      causedBy: "Commit 8f4a21e"
-    }
-  ];
-
-  if (!isHourly) {
-    completed.push({
-      item: "Completed Genesis Milestones (Repository Initialized & Build Passport Verified)",
-      author: "Alex 'Kaelen' Chen",
-      hash: "Genesis",
-      time: "Sprint Day 1",
-      causedBy: "Quest q-1 & q-2 verified"
-    });
+  // If zero activities and zero completed quests, return clear empty standup
+  if (targetActivities.length === 0 && completedQuests.length === 0 && recentCommits.length === 0) {
+    const windowLabel = isHourly ? 'last 3 hours' : 'sprint duration';
+    return {
+      mode,
+      completed: [],
+      inProgress: [],
+      blocked: [],
+      next: [],
+      hasInsufficientData: true,
+      markdown: `### 📋 HackForge ${isHourly ? 'Hourly Sprint Sync' : 'Daily Standup'} - ${context.teamName}
+**Status:** Insufficient telemetry in the ${windowLabel}.
+No commits, pull requests, or completed quests have been logged. Connect a repository or claim milestone quests to generate automated standup notes.`
+    };
   }
 
-  const inProgress = [
-    {
-      item: "Agent HUD visualizer component styling and real-time state hooks",
-      author: "Sophia Zhang",
-      branch: "hud-visuals",
-      causedBy: "PR #14 & local UI workspace"
-    },
-    {
-      item: "Model inference latency optimizations & prompt token caching",
-      author: "Arjun",
-      branch: "ai-inference",
-      causedBy: "PR #15 (open)"
-    }
-  ];
+  // Completed items from real commits & completed quests
+  const completed = [];
+  const relevantCommits = isHourly 
+    ? targetActivities.filter(a => a.type === 'COMMIT')
+    : recentCommits.slice(0, 5);
 
-  const blocked = [
-    {
-      item: "Frontend blocked on CORS policy when calling /api/v1/inference from localhost:5173",
-      impact: "High",
-      causedBy: "Issue #8 (Sophia Zhang)"
-    },
-    {
-      item: "Missing TypeScript interfaces for AgentDecision payload causing compile warnings",
-      impact: "Medium",
-      causedBy: "Issue #9 (Sophia Zhang)"
+  relevantCommits.forEach(c => {
+    const actor = c.actor?.name || c.actor?.username || c.actor?.login || "Contributor";
+    const msg = c.metadata?.message || c.title || "Commit";
+    const hash = c.metadata?.hash || c.metadata?.commit_hash || c.hash || null;
+    let timeStr = "";
+    if (c.timestamp) {
+      const parsed = new Date(c.timestamp);
+      if (!isNaN(parsed.getTime())) {
+        timeStr = parsed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      }
     }
-  ];
+    completed.push({
+      item: msg,
+      author: actor,
+      hash,
+      time: timeStr || "Recent",
+      causedBy: hash ? `Commit ${hash.slice(0, 7)}` : "Verified Commit"
+    });
+  });
 
-  const next = [
-    {
-      item: "Wire ML inference API to React Agent HUD and render live reasoning receipts",
-      targetRole: "Frontend",
-      eta: "Next 2 hours"
-    },
-    {
-      item: "Execute end-to-end settlement integration test across Base testnet",
-      targetRole: "Backend & AI/ML",
-      eta: "Next 4 hours"
-    },
-    {
-      item: "Draft 3-minute video presentation outline for hackathon jury evaluation",
-      targetRole: "Team Leader / Presentation",
-      eta: "Tonight"
-    }
-  ];
+  completedQuests.forEach(q => {
+    completed.push({
+      item: `Completed Milestone: ${q.title}`,
+      author: q.role || "Squad",
+      hash: null,
+      time: "Claimed",
+      causedBy: `Quest ${q.id}`
+    });
+  });
 
-  // Markdown format for 1-click clipboard copying
+  // In-progress items from real in-progress quests
+  const inProgress = currentQuests.map(q => ({
+    item: `Developing milestone: ${q.title} (${q.progress || 0}% complete)`,
+    author: q.role || context.teamMembers[0]?.name || "Squad",
+    branch: context.projectStatus.branch || 'main',
+    causedBy: `Quest ${q.id}`
+  }));
+
+  // Blocked items from real open issues or inferred gaps
+  const blocked = issues.map(i => ({
+    item: `Issue #${i.number || '?'}: ${i.title}`,
+    impact: i.severity || "Medium",
+    causedBy: `Issue reported by ${i.author || i.user?.login || 'contributor'}`
+  }));
+
+  // Next objectives from available quests
+  const next = (context.availableQuests || []).slice(0, 3).map(q => ({
+    item: q.title,
+    targetRole: q.role || "Squad",
+    eta: "Upcoming"
+  }));
+
+  // Format copyable Markdown
   const markdown = `### 🚀 HackForge ${isHourly ? 'Hourly Sprint Sync (Last 3 Hours)' : 'Daily Standup'} - ${context.teamName}
-**Sprint Time:** ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · **Originality:** 97.4% · **Commits:** ${recentCommits.length}
+**Sprint Time:** ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · **Commits Analyzed:** ${relevantCommits.length} · **Quests Completed:** ${completedQuests.length}
 
 #### ✅ Completed
-${completed.map(c => `- **${c.author}**: ${c.item} \`(${c.causedBy})\``).join('\n')}
+${completed.length > 0 ? completed.map(c => `- **${c.author}**: ${c.item} \`(${c.causedBy})\``).join('\n') : '- No completed events logged.'}
 
 #### 🔄 In Progress
-${inProgress.map(i => `- **${i.author}**: ${i.item} [branch: \`${i.branch}\`]`).join('\n')}
+${inProgress.length > 0 ? inProgress.map(i => `- **${i.author}**: ${i.item} [branch: \`${i.branch}\`]`).join('\n') : '- No active in-progress quests.'}
 
-#### ⛔ Blocked
-${blocked.map(b => `- **[${b.impact}]** ${b.item} — *${b.causedBy}*`).join('\n')}
+#### ⛔ Blockers
+${blocked.length > 0 ? blocked.map(b => `- **[${b.impact}]** ${b.item} — *${b.causedBy}*`).join('\n') : '- Zero reported issue blockers.'}
 
 #### 🎯 Next Objectives
-${next.map(n => `- **[${n.targetRole}]** ${n.item} (ETA: ${n.eta})`).join('\n')}
+${next.length > 0 ? next.map(n => `- **[${n.targetRole}]** ${n.item}`).join('\n') : '- Maintain velocity towards final project freeze.'}
 `;
 
   return {
@@ -731,120 +874,228 @@ ${next.map(n => `- **[${n.targetRole}]** ${n.item} (ETA: ${n.eta})`).join('\n')}
     inProgress,
     blocked,
     next,
+    hasInsufficientData: false,
     markdown
   };
 }
 
 /**
  * 8. QUESTION ANSWERING DISPATCHER
- * Answers specific user questions strictly grounded in the structured context
+ * Evaluates queries strictly grounded in structured context without fabricating names, hashes, or metrics.
  */
-export function answerCopilotPrompt(prompt, context, analysis) {
-  const p = (prompt || "").toLowerCase();
+export function answerCopilotPrompt(prompt = "", context = {}, analysis = {}) {
+  const p = prompt.toLowerCase().trim();
 
-  // TinyFish Web Research Query
+  // Ensure analysis defaults are computed dynamically if omitted
+  const safeAnalysis = {
+    teamSummary: analysis.teamSummary || generateTeamSummary(context),
+    blockers: analysis.blockers || detectBlockers(context),
+    nextAction: analysis.nextAction || recommendNextAction(context),
+    teamHealth: analysis.teamHealth || computeTeamHealth(context),
+    standup: analysis.standup || generateStandup(context),
+    ...analysis
+  };
+
+  // 1. TinyFish Web Research Query
   if (p.includes("tinyfish") || p.includes("web research") || p.includes("research docs") || p.includes("competitor")) {
+    const problemName = context.problemStatement?.title || "your sprint challenge";
     return {
       answer: `🐟 TinyFish Live Web Research Integration for ${context.teamName}:
-- **Autonomous Navigation**: TinyFish web agents navigate public documentation, extract real API schemas, and analyze competitors.
-- **Real-Time Telemetry**: Real-time SSE streaming delivers live execution progress, browser streaming previews, and verified source citations.
-- **Research-to-Quest Conversion**: Convert technical findings into actionable hackathon quests with verifiable evidence requirements and milestone XP rewards (+350 XP).
-- **Action**: Switch to the "TinyFish Live Web Research" tab above to launch an automated browser exploration.`,
+- **Autonomous Navigation**: TinyFish web agents navigate live technical documentation, extract API schemas, and analyze architectural patterns for "${problemName}".
+- **Real-Time Telemetry**: Server-Sent Events (SSE) deliver live browser streaming logs and source citations straight to your workspace.
+- **Quest Conversion**: Convert discovered specifications directly into executable milestone quests with XP rewards (+350 XP).
+- **How to Use**: Click the "TinyFish Live Web Research" tab above to initiate an automated documentation crawl.`,
       evidence: [{ type: "INTEGRATION", label: "TinyFish Live Web Research Agent" }]
     };
   }
 
-  // Architecture audit
-  if (p.includes("architecture audit") || p.includes("audit")) {
+  // 2. Querying "what happened in last hour" or time-window questions
+  if (p.includes("last hour") || p.includes("past hour") || p.includes("1 hour") || p.includes("1h")) {
+    const oneHourActivities = filterByTimeWindow(context.activities || [], '1h');
+    if (oneHourActivities.length === 0) {
+      return {
+        answer: `⏱️ Last 1 Hour Activity Report:
+Insufficient telemetry evidence: No commits, pull requests, or milestone events were logged during the last 1 hour for ${context.teamName}.
+Ensure team members are committing to the connected repository to stream real-time activity.`,
+        evidence: []
+      };
+    }
+
+    const commits = oneHourActivities.filter(a => a.type === 'COMMIT');
+    const authors = Array.from(new Set(oneHourActivities.map(a => a.actor?.name || a.actor?.username || a.actor?.login).filter(Boolean)));
+    const commitList = commits.map(c => {
+      const hash = c.metadata?.hash || c.metadata?.commit_hash || c.hash;
+      const msg = c.metadata?.message || c.title || "Commit";
+      const author = c.actor?.name || c.actor?.username || "Contributor";
+      return `- "${msg}" by ${author}${hash ? ` (${hash.slice(0, 7)})` : ''}`;
+    }).join('\n');
+
     return {
-      answer: `🔍 Comprehensive Telemetry Architecture Audit for ${context.teamName}:
-
-1. **Ingestion & Microservices**:
-   - Backend API authentication is verified via commit a12e99f (Rachit).
-   - Python ML inference service operational on branch 'ai-inference' (Arjun, commit 3d9c70b).
-2. **Current Integration Gap**:
-   - Critical Blocker: The frontend has not integrated the ML endpoints yet (Issue #8 CORS error reported by Sophia).
-3. **Build Passport Readiness**:
-   - Originality Audit: 97.4% (Optimal threshold >90% met).
-   - Boilerplate Retention: 3.6% (Whitelisted starter template compliant).
-
-**Recommended Immediate Move**: Resolve Issue #8 CORS header and hook /api/v1/inference into the Agent HUD.`,
-      evidence: [
-        { type: "COMMIT", hash: "a12e99f", label: "Added API authentication by Rachit" },
-        { type: "COMMIT", hash: "3d9c70b", label: "Created ML inference service by Arjun" },
-        { type: "ISSUE", number: 8, label: "CORS policy blocking localhost:5173" }
-      ]
+      answer: `⏱️ Last 1 Hour Activity Report for ${context.teamName}:
+- **Total Events**: ${oneHourActivities.length} (${commits.length} commits)
+- **Active Author(s)**: ${authors.join(', ') || 'None identified'}
+- **Recent Commits**:
+${commitList || '- No commits in this window.'}`,
+      evidence: commits.slice(0, 3).map(c => ({
+        type: "COMMIT",
+        hash: c.metadata?.hash || c.hash || null,
+        label: `${c.metadata?.message || c.title || 'Commit'} by ${c.actor?.name || 'Contributor'}`
+      }))
     };
   }
 
-  // Pacing
-  if (p.includes("pacing") || p.includes("time") || p.includes("remaining")) {
+  // 3. Pre-Submission Architecture Audit
+  if (p.includes("architecture audit") || p.includes("audit") || p.includes("pre-submission")) {
+    const repoStatus = context.projectStatus?.repoUrl ? `Connected (@${context.projectStatus.repoUrl.replace('https://github.com/', '')})` : "Not Connected";
+    const commitCount = context.recentCommits?.length || 0;
+    const completedCount = context.completedQuests?.length || 0;
+    const totalQuests = context.allQuests?.length || 0;
+    const integrity = context.projectStatus?.integrityScore !== null ? `${context.projectStatus.integrityScore}% Clean` : "Awaiting repository connection";
+    const blockers = (safeAnalysis.blockers || []).filter(b => b.category !== 'CLEAR');
+
+    const evidenceList = (context.recentCommits || []).slice(0, 3).map(c => ({
+      type: "COMMIT",
+      hash: c.metadata?.hash || c.hash || null,
+      label: `${c.metadata?.message || c.title || 'Commit'} by ${c.actor?.name || 'Contributor'}`
+    }));
+
     return {
-      answer: `⏱️ Sprint Pacing & Velocity Assessment:
-- **Velocity**: ${(context.recentCommits.length * 1.4).toFixed(1)} commits/hr (Top 10% on Leaderboard).
-- **Time Remaining**: 31 hours before final code freeze.
-- **Pacing Projection**: If frontend connects to the ML service within the next 4 hours, your team will achieve full MVP functionality with 12 hours remaining for testing, UI refinement, and recording your 3-minute video presentation.`,
-      evidence: [
-        { type: "METRIC", label: "37 total commits verified on branch 'main'" },
-        { type: "METRIC", label: "Leaderboard Rank #3 across 196 teams" }
-      ]
+      answer: `🔍 Pre-Submission Architecture Audit for ${context.teamName}:
+
+1. **Repository & Telemetry Baseline**:
+   - Status: ${repoStatus}
+   - Verified Commits: ${commitCount}
+   - Branch: ${context.projectStatus?.branch || 'main'}
+
+2. **Milestone Progress**:
+   - Quests Completed: ${completedCount}/${totalQuests}
+   - Active Blockers: ${blockers.length} reported issue(s) or friction points
+
+3. **Build Passport Integrity**:
+   - Originality Audit: ${integrity}
+
+**Recommended Focus**: ${safeAnalysis.nextAction?.title || "Complete remaining deliverables before code freeze."}`,
+      evidence: evidenceList
     };
   }
 
-  // Next action
-  if (p.includes("next") || p.includes("what should i do") || p.includes("task")) {
-    const na = analysis.nextAction;
+  // 4. Sprint Pacing & Velocity
+  if (p.includes("pacing") || p.includes("velocity") || p.includes("remaining")) {
+    const commitCount = context.recentCommits?.length || 0;
+    let remainingText = "Sprint window active";
+    if (context.activeHackathon?.endsAt) {
+      const endMs = Date.parse(context.activeHackathon.endsAt);
+      if (!isNaN(endMs)) {
+        const diffHours = Math.max(0, Math.round((endMs - Date.now()) / (3600 * 1000)));
+        remainingText = `${diffHours} hour(s) remaining until submission freeze`;
+      }
+    }
+
+    return {
+      answer: `⏱️ Sprint Pacing & Velocity Diagnostic:
+- **Recorded Commits**: ${commitCount} verified commits
+- **Sprint Window**: ${remainingText}
+- **Completed Milestones**: ${context.completedQuests?.length || 0} quests claimed
+- **Assessment**: ${safeAnalysis.teamHealth?.development?.detail || "Pacing analysis active."}`,
+      evidence: (context.recentCommits || []).slice(0, 2).map(c => ({
+        type: "COMMIT",
+        hash: c.metadata?.hash || c.hash || null,
+        label: c.metadata?.message || c.title || 'Commit'
+      }))
+    };
+  }
+
+  // 5. Blockers / Gaps Query
+  if (p.includes("blocker") || p.includes("friction") || p.includes("stuck") || p.includes("gap")) {
+    const blockers = safeAnalysis.blockers || [];
+    const formatted = blockers.map(b => `- **[${b.severity}] ${b.title}**: ${b.description}`).join('\n');
+    return {
+      answer: `⚠️ Active Telemetry Blockers & Friction Points (${blockers.length}):
+${formatted}
+
+**Recommended Remediation**: ${blockers[0]?.remediation || "Maintain steady commit cadence."}`,
+      evidence: blockers.map(b => ({
+        type: b.causedBy?.type || "BLOCKER",
+        label: b.title
+      }))
+    };
+  }
+
+  // 6. Next Action / What should I do
+  if (p.includes("next") || p.includes("what should i do") || p.includes("task") || p.includes("priority")) {
+    const na = safeAnalysis.nextAction || recommendNextAction(context);
     return {
       answer: `🎯 Highest-Value Next Action: **${na.title}**
-- **Assigned Workstream**: ${na.targetRole} (${na.targetAssignee})
-- **Bounty Impact**: +${na.xpReward} XP & ${na.judgingImpact}
+- **Assigned Role**: ${na.targetRole} (${na.targetAssignee})
+- **Bounty Impact**: +${na.xpReward} XP (${na.judgingImpact})
 - **Why Now**: ${na.whyNow}
 
-**Steps**:
+**Action Steps**:
 ${na.executionChecklist.map(s => `${s.step}. ${s.text}`).join('\n')}`,
-      evidence: [na.causedBy]
+      evidence: na.causedBy ? [na.causedBy] : []
     };
   }
 
-  // What did [person] do?
-  if (p.includes("arjun")) {
+  // 7. Member query ("What did [name] do?" / "Is [name] active?")
+  const members = context.teamMembers || [];
+  const matchedMember = members.find(m => m && m.name && p.includes(m.name.toLowerCase()));
+  
+  if (matchedMember) {
+    const memberName = matchedMember.name;
+    const memberCommits = (context.recentCommits || []).filter(c => {
+      const act = (c.actor?.name || c.actor?.username || c.actor?.login || "").toLowerCase();
+      return act === memberName.toLowerCase() || act.includes(memberName.toLowerCase().split(' ')[0]);
+    });
+
+    if (memberCommits.length === 0) {
+      return {
+        answer: `👤 Workstream Report for ${memberName} (${matchedMember.role || 'Member'}):
+- **Observed Commits**: 0 commits recorded in the connected repository history.
+- **Inferred Possibility**: May be working in an unpushed local branch, researching architectures, or waiting on dependent services.
+- **Status**: No repository telemetry available to measure code velocity.`,
+        evidence: []
+      };
+    }
+
+    const commitList = memberCommits.map(c => {
+      const hash = c.metadata?.hash || c.metadata?.commit_hash || c.hash;
+      const msg = c.metadata?.message || c.title || "Commit";
+      return `- "${msg}"${hash ? ` (commit ${hash.slice(0, 7)})` : ''}`;
+    }).join('\n');
+
     return {
-      answer: `🤖 Arjun's Recent Telemetry Summary:
-- **10:58 PM**: Created ML inference service on branch 'ai-inference' (commit 3d9c70b, +430 / -25 lines in /ml/inference.py).
-- **11:05 PM**: Opened Pull Request #15 ("Integrate FastAPI inference with LangChain agent", currently awaiting review).
-- **Current Status**: Active on inference optimization.`,
-      evidence: [{ type: "COMMIT", hash: "3d9c70b", label: "Created ML inference service" }]
+      answer: `👤 Telemetry Summary for ${memberName} (${matchedMember.role || 'Member'}):
+- **Verified Commits**: ${memberCommits.length}
+- **Recent Activities**:
+${commitList}`,
+      evidence: memberCommits.slice(0, 3).map(c => ({
+        type: "COMMIT",
+        hash: c.metadata?.hash || c.hash || null,
+        label: `${c.metadata?.message || c.title || 'Commit'} by ${memberName}`
+      }))
     };
   }
 
-  if (p.includes("rachit")) {
+  // Check if user is asking about an unrecognized person
+  const cleanTokens = p.replace(/[?!.,;:'"()]/g, '').split(/\s+/);
+  const potentialNameQuery = cleanTokens.find(w => w.length >= 3 && !['what', 'when', 'where', 'which', 'about', 'audit', 'pacing', 'sprint', 'hackathon', 'copilot', 'explain', 'show', 'tell', 'help', 'work', 'done', 'with', 'from', 'this', 'that', 'last', 'hour', 'team', 'member', 'squad'].includes(w));
+  if ((p.includes("what did") || p.includes("who is") || p.includes("work on")) && potentialNameQuery) {
     return {
-      answer: `🛡️ Rachit's Recent Telemetry Summary:
-- **10:42 PM**: Added API authentication & JWT token verification (commit a12e99f, +185 / -14 lines in server/auth.js).
-- **Current Status**: Backend authentication operational.`,
-      evidence: [{ type: "COMMIT", hash: "a12e99f", label: "Added API authentication" }]
+      answer: `❓ Unrecognized Member: "${potentialNameQuery}" is not recognized as a member of ${context.teamName}.
+Registered team members: ${members.map(m => m.name).join(', ') || 'None registered'}.`,
+      evidence: []
     };
   }
 
-  if (p.includes("sophia") || p.includes("frontend")) {
-    return {
-      answer: `💻 Frontend Workstream Summary (Sophia Zhang):
-- **Current Status**: 0 commits logged in the last 2 hours.
-- **Reported Blockers**:
-  * Issue #8: CORS error calling /api/v1/inference from localhost:5173
-  * Issue #9: Missing TypeScript interfaces for AgentDecision
-- **Recommendation**: Unblock CORS in FastAPI to allow Sophia to resume UI integration.`,
-      evidence: [{ type: "ISSUE", number: 8, label: "CORS policy blocking localhost:5173" }]
-    };
-  }
-
-  // Generic fallback strictly grounded in real metrics
+  // 8. General Grounded Fallback
+  const commitCount = context.recentCommits?.length || 0;
+  const questCount = context.completedQuests?.length || 0;
   return {
-    answer: `🤖 AI Copilot Analysis for "${prompt}":
-Based on verified telemetry from ${context.teamName} (${context.projectStatus.commitsCount} commits, ${context.completedQuests.length} completed quests):
-- ${analysis.teamSummary.text}
-- Primary Blocker: ${analysis.blockers[0]?.title || "None"}
-- Recommended Priority: ${analysis.nextAction.title} (+${analysis.nextAction.xpReward} XP).`,
-    evidence: analysis.teamSummary.evidence
+    answer: `🤖 HackForge Telemetry Diagnostic for "${prompt}":
+Based on structured project state for ${context.teamName} (${commitCount} verified commits, ${questCount} completed quests):
+- ${safeAnalysis.teamSummary?.text || "Workstream analysis active."}
+- Top Blocker: ${safeAnalysis.blockers?.[0]?.title || "None detected"}
+- Recommended Action: ${safeAnalysis.nextAction?.title || "Continue current development sprint."}`,
+    evidence: safeAnalysis.teamSummary?.evidence || []
   };
 }

@@ -8,6 +8,7 @@
     "server": "node server/server.js",
     "test": "node server/test-real-github.js",
     "test:app": "node server/test-github-app.js",
+    "test:copilot": "node server/test-copilot-engine.js",
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview"
@@ -24,6 +25,7 @@
     "react-router-dom": "^7.18.4"
   },
   "devDependencies": {
+    "@oxlint/binding-win32-x64-msvc": "^1.83.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^4.3.4",

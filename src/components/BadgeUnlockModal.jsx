@@ -2,6 +2,15 @@ import React, { useEffect } from 'react';
 import { Trophy, Zap, Award, Sparkles, Check, X, ArrowRight, ShieldCheck } from 'lucide-react';
 
 export default function BadgeUnlockModal({ data, onClose }) {
+  useEffect(() => {
+    if (!data) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [data, onClose]);
+
   if (!data) return null;
 
   const {
@@ -15,14 +24,6 @@ export default function BadgeUnlockModal({ data, onClose }) {
     level = null,
     levelTitle = null
   } = data;
-
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
 
   return (
     <div

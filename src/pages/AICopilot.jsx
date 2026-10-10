@@ -1,26 +1,17 @@
 import React, { useState, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
 import {
-  Cpu,
   Sparkles,
-  ShieldCheck,
   AlertTriangle,
   AlertCircle,
   CheckCircle2,
   Clock,
   ArrowRight,
   TrendingUp,
-  GitBranch,
   GitCommit,
-  GitPullRequest,
-  Users,
-  Layers,
   Zap,
   RefreshCw,
   Copy,
   Check,
-  HelpCircle,
-  ExternalLink,
   ChevronDown,
   ChevronUp,
   FileCode,
@@ -29,12 +20,12 @@ import {
   Activity,
   BookmarkPlus,
   Globe,
-  Compass
+  Info,
+  HelpCircle
 } from 'lucide-react';
 import TinyFishResearchPanel from '../components/TinyFishResearchPanel';
 import { useHackForge } from '../context/HackForgeContext';
 import Sidebar from '../components/Sidebar';
-import GithubIcon from '../components/GithubIcon';
 import {
   extractStructuredContext,
   generateTeamSummary,
@@ -48,7 +39,6 @@ import {
 } from '../utils/aiCopilotEngine';
 
 export default function AICopilot() {
-  const { id } = useParams();
   const {
     team,
     quests,
@@ -82,7 +72,7 @@ export default function AICopilot() {
     {
       id: 'init-1',
       sender: 'copilot',
-      text: `Hello ${team.name} builders! I'm your HackForge AI Team Copilot. I'm actively analyzing your 12 structured project streams: problem statement, team roles, quest board, GitHub commits, PRs, and issues.\n\nEvery insight is grounded in real activity. I will never hallucinate telemetry.`,
+      text: `Hello ${team?.name || 'HackForge'} builders! I'm your HackForge AI Team Copilot. I'm actively analyzing your 12 structured project streams: problem statement, team roles, quest board, GitHub commits, PRs, and issues.\n\nEvery insight is grounded in real activity. I will never hallucinate telemetry.`,
       timestamp: 'Just now',
       evidence: []
     }
@@ -175,8 +165,8 @@ export default function AICopilot() {
   const presetQueries = [
     "Run Pre-Submission Architecture Audit",
     "How do I use TinyFish Web Research?",
-    "What is blocking Sophia?",
-    "What did Arjun work on in the last hour?",
+    "What happened during the last hour?",
+    "What blockers or workstream gaps are detected?",
     "Sprint Pacing Assessment"
   ];
 
@@ -197,7 +187,7 @@ export default function AICopilot() {
                 <span>HACKFORGE AI COPILOT v2.4</span>
               </span>
               <span className="badge badge-muted" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem' }}>
-                12 TELEMETRY STREAMS INGESTED
+                RULE-BASED TELEMETRY REASONING
               </span>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
                 CONTEXT: {team.name?.toUpperCase()}
@@ -206,7 +196,7 @@ export default function AICopilot() {
 
             <h1 style={{ fontSize: '1.9rem', marginBottom: '4px' }}>AI Team Copilot</h1>
             <p className="page-subtitle">
-              Context-intensive sprint intelligence engine with causal activity tracing and zero hallucinations.
+              Deterministic sprint intelligence engine with causal activity tracing, explainable blocker detection, and zero hallucinations.
             </p>
           </div>
 
@@ -320,13 +310,13 @@ export default function AICopilot() {
               <div style={{ background: 'var(--bg-surface)', padding: '10px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
                 <div style={{ fontSize: '0.7rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>3. QUESTS & MILESTONES</div>
                 <div style={{ fontSize: '0.82rem', fontWeight: 600 }}>{context.completedQuests.length} Completed / {context.currentQuests.length} In Progress</div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Vault XP: {team.xpEarned || 2450} XP</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Vault XP: {team.xpEarned ?? team.xp ?? 0} XP</div>
               </div>
 
               <div style={{ background: 'var(--bg-surface)', padding: '10px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
                 <div style={{ fontSize: '0.7rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>4. GITHUB RECENT TELEMETRY</div>
                 <div style={{ fontSize: '0.82rem', fontWeight: 600 }}>{context.recentCommits.length} Commits · {context.pullRequests.length} PRs · {context.issues.length} Issues</div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Repo: {team.githubRepo?.replace('https://github.com/', '') || 'Connected'}</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Repo: {team.githubRepo ? team.githubRepo.replace('https://github.com/', '') : 'Not connected'}</div>
               </div>
             </div>
 
@@ -347,9 +337,9 @@ export default function AICopilot() {
                 teamRoles: context.assignedRoles,
                 completedQuests: context.completedQuests.map(q => q.title),
                 recentCommits: context.recentCommits.map(c => ({
-                  hash: c.metadata?.hash || 'a12e99f',
-                  actor: c.actor?.name,
-                  message: c.metadata?.message || c.title
+                  hash: c.metadata?.hash || c.metadata?.commit_hash || c.hash || null,
+                  actor: c.actor?.name || c.author || 'Unknown',
+                  message: c.metadata?.message || c.title || c.message || 'Commit'
                 })),
                 pullRequests: context.pullRequests.map(p => ({ number: p.number, title: p.title, status: p.status })),
                 issues: context.issues.map(i => ({ number: i.number, title: i.title, severity: i.severity }))
@@ -381,21 +371,29 @@ export default function AICopilot() {
 
             {/* Workstream Mini Status Badges */}
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <div style={{ background: 'rgba(0,0,0,0.5)', padding: '6px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+              <div style={{ background: 'rgba(0,0,0,0.5)', padding: '6px 12px', borderRadius: 'var(--radius-sm)', border: `1px solid ${teamSummary.workstreamHealth?.backend === 'ACTIVE' || teamSummary.workstreamHealth?.backend === 'GROWING' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'}` }}>
                 <div style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>BACKEND</div>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-emerald)' }}>ADVANCED</div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: teamSummary.workstreamHealth?.backend === 'ACTIVE' || teamSummary.workstreamHealth?.backend === 'GROWING' ? 'var(--accent-emerald)' : 'var(--accent-amber)' }}>
+                  {teamSummary.workstreamHealth?.backend || 'N/A'}
+                </div>
               </div>
-              <div style={{ background: 'rgba(0,0,0,0.5)', padding: '6px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+              <div style={{ background: 'rgba(0,0,0,0.5)', padding: '6px 12px', borderRadius: 'var(--radius-sm)', border: `1px solid ${teamSummary.workstreamHealth?.ml === 'ACTIVE' || teamSummary.workstreamHealth?.ml === 'GROWING' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'}` }}>
                 <div style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>AI / ML</div>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-emerald)' }}>ADVANCED</div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: teamSummary.workstreamHealth?.ml === 'ACTIVE' || teamSummary.workstreamHealth?.ml === 'GROWING' ? 'var(--accent-emerald)' : 'var(--accent-amber)' }}>
+                  {teamSummary.workstreamHealth?.ml || 'N/A'}
+                </div>
               </div>
-              <div style={{ background: 'rgba(0,0,0,0.5)', padding: '6px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
+              <div style={{ background: 'rgba(0,0,0,0.5)', padding: '6px 12px', borderRadius: 'var(--radius-sm)', border: `1px solid ${teamSummary.workstreamHealth?.frontend === 'ACTIVE' || teamSummary.workstreamHealth?.frontend === 'GROWING' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(245, 158, 11, 0.3)'}` }}>
                 <div style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>FRONTEND</div>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-amber)' }}>NOT STARTED</div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: teamSummary.workstreamHealth?.frontend === 'ACTIVE' || teamSummary.workstreamHealth?.frontend === 'GROWING' ? 'var(--accent-emerald)' : 'var(--accent-amber)' }}>
+                  {teamSummary.workstreamHealth?.frontend || 'N/A'}
+                </div>
               </div>
-              <div style={{ background: 'rgba(0,0,0,0.5)', padding: '6px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(6, 182, 212, 0.3)' }}>
+              <div style={{ background: 'rgba(0,0,0,0.5)', padding: '6px 12px', borderRadius: 'var(--radius-sm)', border: `1px solid ${teamSummary.workstreamHealth?.docs === 'ACTIVE' || teamSummary.workstreamHealth?.docs === 'GROWING' ? 'rgba(6, 182, 212, 0.3)' : 'rgba(148, 163, 184, 0.3)'}` }}>
                 <div style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>DOCS</div>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-cyan)' }}>CURRENT</div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: teamSummary.workstreamHealth?.docs === 'ACTIVE' || teamSummary.workstreamHealth?.docs === 'GROWING' ? 'var(--accent-cyan)' : 'var(--text-muted)' }}>
+                  {teamSummary.workstreamHealth?.docs || 'N/A'}
+                </div>
               </div>
             </div>
           </div>
@@ -406,16 +404,24 @@ export default function AICopilot() {
               🔍 VERIFIED CAUSAL ACTIVITY EVIDENCE (ANTI-HALLUCINATION TRACE)
             </div>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              {teamSummary.evidence.map((ev, idx) => (
-                <div key={idx} className="copilot-evidence-chip cyan">
-                  <GitCommit size={12} />
-                  <span>{ev.actor} ({ev.hash}): {ev.label}</span>
+              {teamSummary.evidence.length === 0 ? (
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                  No supporting commit records available in telemetry.
                 </div>
-              ))}
-              <div className="copilot-evidence-chip amber">
-                <AlertTriangle size={12} />
-                <span>0 frontend commits recorded in the last 3 hours</span>
-              </div>
+              ) : (
+                teamSummary.evidence.map((ev, idx) => (
+                  <div key={idx} className="copilot-evidence-chip cyan">
+                    <GitCommit size={12} />
+                    <span>{ev.actor}{ev.hash ? ` (${ev.hash.slice(0, 7)})` : ''}: {ev.label}</span>
+                  </div>
+                ))
+              )}
+              {teamSummary.stats?.frontendCommits === 0 && (teamSummary.stats?.backendCommits > 0 || teamSummary.stats?.mlCommits > 0) && (
+                <div className="copilot-evidence-chip amber">
+                  <AlertTriangle size={12} />
+                  <span>0 frontend commits recorded in telemetry</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -586,7 +592,7 @@ export default function AICopilot() {
                 {teamHealth.risk.level}
               </div>
               <div style={{ fontSize: '0.72rem', fontWeight: 600, color: teamHealth.risk.color, marginBottom: '6px' }}>
-                AUDIT: {teamHealth.risk.integrityAuditScore}% ORIGINAL
+                AUDIT: {teamHealth.risk.integrityAuditScore !== null ? `${teamHealth.risk.integrityAuditScore}% ORIGINAL` : 'NO REPO LINKED'}
               </div>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
                 {teamHealth.risk.justification}
@@ -924,87 +930,123 @@ export default function AICopilot() {
             </div>
           </div>
 
-          <div className="grid-2" style={{ gap: '16px' }}>
-            {/* Completed */}
-            <div style={{ background: 'var(--bg-surface)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
-                <CheckCircle2 size={16} color="var(--accent-emerald)" />
-                <h4 style={{ fontSize: '0.9rem', color: 'var(--text-primary)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
-                  COMPLETED ({standup.completed.length})
-                </h4>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {standup.completed.map((c, i) => (
-                  <div key={i} style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                    <strong style={{ color: 'var(--text-primary)' }}>{c.author}: </strong>
-                    <span>{c.item} </span>
-                    <span className="badge badge-muted" style={{ fontSize: '0.65rem', fontFamily: 'var(--font-mono)' }}>
-                      {c.causedBy}
-                    </span>
-                  </div>
-                ))}
-              </div>
+          {standup.hasInsufficientData ? (
+            <div
+              style={{
+                background: 'var(--bg-surface)',
+                padding: '32px 24px',
+                borderRadius: 'var(--radius-md)',
+                border: '1px dashed var(--border-default)',
+                textAlign: 'center'
+              }}
+            >
+              <Info size={32} color="var(--accent-cyan)" style={{ margin: '0 auto 12px auto' }} />
+              <h4 style={{ fontSize: '1rem', marginBottom: '6px', color: 'var(--text-primary)' }}>
+                Insufficient Telemetry for Automated Standup
+              </h4>
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', maxWidth: '540px', margin: '0 auto', lineHeight: 1.5 }}>
+                No commits, pull requests, or quest completions have been recorded in this time window. Connect a repository or log activity to automatically generate standup items.
+              </p>
             </div>
+          ) : (
+            <div className="grid-2" style={{ gap: '16px' }}>
+              {/* Completed */}
+              <div style={{ background: 'var(--bg-surface)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
+                  <CheckCircle2 size={16} color="var(--accent-emerald)" />
+                  <h4 style={{ fontSize: '0.9rem', color: 'var(--text-primary)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
+                    COMPLETED ({standup.completed.length})
+                  </h4>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {standup.completed.length === 0 ? (
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>No completed commits or quests recorded in this window.</div>
+                  ) : (
+                    standup.completed.map((c, i) => (
+                      <div key={i} style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                        <strong style={{ color: 'var(--text-primary)' }}>{c.author}: </strong>
+                        <span>{c.item} </span>
+                        <span className="badge badge-muted" style={{ fontSize: '0.65rem', fontFamily: 'var(--font-mono)' }}>
+                          {c.causedBy}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
 
-            {/* In Progress */}
-            <div style={{ background: 'var(--bg-surface)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
-                <TrendingUp size={16} color="var(--accent-cyan)" />
-                <h4 style={{ fontSize: '0.9rem', color: 'var(--text-primary)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
-                  IN PROGRESS ({standup.inProgress.length})
-                </h4>
+              {/* In Progress */}
+              <div style={{ background: 'var(--bg-surface)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
+                  <TrendingUp size={16} color="var(--accent-cyan)" />
+                  <h4 style={{ fontSize: '0.9rem', color: 'var(--text-primary)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
+                    IN PROGRESS ({standup.inProgress.length})
+                  </h4>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {standup.inProgress.length === 0 ? (
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>No active milestones currently claimed.</div>
+                  ) : (
+                    standup.inProgress.map((ip, i) => (
+                      <div key={i} style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                        <strong style={{ color: 'var(--text-primary)' }}>{ip.author}: </strong>
+                        <span>{ip.item} </span>
+                        <span className="badge badge-cyan" style={{ fontSize: '0.65rem', fontFamily: 'var(--font-mono)' }}>
+                          branch: {ip.branch}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {standup.inProgress.map((ip, i) => (
-                  <div key={i} style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                    <strong style={{ color: 'var(--text-primary)' }}>{ip.author}: </strong>
-                    <span>{ip.item} </span>
-                    <span className="badge badge-cyan" style={{ fontSize: '0.65rem', fontFamily: 'var(--font-mono)' }}>
-                      branch: {ip.branch}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
 
-            {/* Blocked */}
-            <div style={{ background: 'var(--bg-surface)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
-                <AlertCircle size={16} color="var(--accent-rose)" />
-                <h4 style={{ fontSize: '0.9rem', color: 'var(--text-primary)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
-                  BLOCKED ({standup.blocked.length})
-                </h4>
+              {/* Blocked */}
+              <div style={{ background: 'var(--bg-surface)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
+                  <AlertCircle size={16} color="var(--accent-rose)" />
+                  <h4 style={{ fontSize: '0.9rem', color: 'var(--text-primary)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
+                    BLOCKED ({standup.blocked.length})
+                  </h4>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {standup.blocked.length === 0 ? (
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>Zero critical blockers detected.</div>
+                  ) : (
+                    standup.blocked.map((b, i) => (
+                      <div key={i} style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                        <span className="badge badge-rose" style={{ fontSize: '0.65rem', marginRight: '6px' }}>{b.impact}</span>
+                        <span>{b.item} </span>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>— {b.causedBy}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {standup.blocked.map((b, i) => (
-                  <div key={i} style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                    <span className="badge badge-rose" style={{ fontSize: '0.65rem', marginRight: '6px' }}>{b.impact}</span>
-                    <span>{b.item} </span>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>— {b.causedBy}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
 
-            {/* Next */}
-            <div style={{ background: 'var(--bg-surface)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
-                <ArrowRight size={16} color="var(--accent-amber)" />
-                <h4 style={{ fontSize: '0.9rem', color: 'var(--text-primary)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
-                  NEXT OBJECTIVES ({standup.next.length})
-                </h4>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {standup.next.map((n, i) => (
-                  <div key={i} style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                    <span className="badge badge-amber" style={{ fontSize: '0.65rem', marginRight: '6px' }}>{n.targetRole}</span>
-                    <span>{n.item} </span>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)' }}>({n.eta})</span>
-                  </div>
-                ))}
+              {/* Next */}
+              <div style={{ background: 'var(--bg-surface)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
+                  <ArrowRight size={16} color="var(--accent-amber)" />
+                  <h4 style={{ fontSize: '0.9rem', color: 'var(--text-primary)', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
+                    NEXT OBJECTIVES ({standup.next.length})
+                  </h4>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {standup.next.length === 0 ? (
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>No pending unstarted milestones.</div>
+                  ) : (
+                    standup.next.map((n, i) => (
+                      <div key={i} style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                        <span className="badge badge-amber" style={{ fontSize: '0.65rem', marginRight: '6px' }}>{n.targetRole}</span>
+                        <span>{n.item} </span>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--accent-cyan)' }}>({n.eta})</span>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* ================================================================ */}

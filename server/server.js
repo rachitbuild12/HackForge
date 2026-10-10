@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
 import { createTinyFishRouter } from './tinyfishRoutes.js';
+import { createGitHubAppRouter } from './githubAppRoutes.js';
 
 dotenv.config();
 
@@ -25,7 +26,11 @@ app.use(cors({
   origin: CLIENT_URL,
   credentials: true
 }));
-app.use(express.json());
+app.use(express.json({
+  verify: (req, res, buf) => {
+    req.rawBody = buf;
+  }
+}));
 app.use(cookieParser());
 
 // Helper: Extract valid server session
@@ -568,10 +573,19 @@ app.post('/api/github/sync/:projectId', async (req, res) => {
 // 10. TinyFish Live Web Research API Routes
 app.use('/api/tinyfish', createTinyFishRouter());
 
+// 11. GitHub App Integration Routes & Webhook Listener
+const githubAppRouter = createGitHubAppRouter(projectDataStore);
+app.use('/api/github/app', githubAppRouter);
+app.post('/api/github/webhook', (req, res, next) => {
+  req.url = '/webhook';
+  githubAppRouter(req, res, next);
+});
+
 // Start Server
 app.listen(PORT, () => {
   console.log(`⚡ HackForge Secure GitHub Backend running on http://localhost:${PORT}`);
   console.log(`🔒 Client Origin: ${CLIENT_URL}`);
   console.log(`🔑 GitHub OAuth configured: ${Boolean(GITHUB_CLIENT_ID && GITHUB_CLIENT_SECRET)}`);
+  console.log(`🤖 GitHub App configured: ${Boolean(process.env.GITHUB_APP_ID && process.env.GITHUB_APP_PRIVATE_KEY)}`);
   console.log(`🐟 TinyFish Live Research configured: ${Boolean(process.env.TINYFISH_API_KEY && process.env.TINYFISH_API_KEY.trim())}`);
 });

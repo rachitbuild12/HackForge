@@ -71,6 +71,13 @@ export function HackForgeProvider({ children }) {
   });
   const [isGithubLoading, setIsGithubLoading] = useState(false);
   const [githubError, setGithubError] = useState(null);
+  const [githubAppStatus, setGithubAppStatus] = useState({
+    configured: false,
+    appSlug: null,
+    appId: null,
+    activeInstallationId: null,
+    permissions: {}
+  });
 
   const [hackathonsList, setHackathonsList] = useState(() => {
     const baseWithDemo = [demoHackathon, ...hackathons];
@@ -163,13 +170,35 @@ export function HackForgeProvider({ children }) {
     }
   }, []);
 
-  // Check URL callback parameters on mount (e.g. ?github_auth=success or ?github_error=...)
+  const checkGitHubAppStatus = useCallback(async () => {
+    try {
+      const res = await fetch('/api/github/app/status', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        setGithubAppStatus(data);
+        return data;
+      }
+    } catch (err) {
+      console.warn("Failed checking GitHub App status:", err);
+    }
+    return null;
+  }, []);
+
+  // Check URL callback parameters on mount (e.g. ?github_auth=success or ?github_app_installed=true or ?github_error=...)
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
-      if (params.get('github_auth') === 'success') {
+      if (params.get('github_app_installed') === 'true') {
+        const account = params.get('account') || 'GitHub';
+        showToast(`GitHub App connected for @${account}!`, "default");
+        checkGitHubAppStatus();
+        checkGitHubAuthStatus();
+        const newUrl = window.location.pathname + window.location.hash;
+        window.history.replaceState({}, document.title, newUrl);
+      } else if (params.get('github_auth') === 'success') {
         showToast("GitHub account connected successfully!", "default");
         checkGitHubAuthStatus();
+        checkGitHubAppStatus();
         const newUrl = window.location.pathname + window.location.hash;
         window.history.replaceState({}, document.title, newUrl);
       } else if (params.get('github_error')) {
@@ -180,9 +209,10 @@ export function HackForgeProvider({ children }) {
         window.history.replaceState({}, document.title, newUrl);
       } else {
         checkGitHubAuthStatus();
+        checkGitHubAppStatus();
       }
     }
-  }, [checkGitHubAuthStatus]);
+  }, [checkGitHubAuthStatus, checkGitHubAppStatus]);
 
   const fetchGitHubRepos = async () => {
     setIsGithubLoading(true);
@@ -356,6 +386,99 @@ export function HackForgeProvider({ children }) {
       throw err;
     } finally {
       setIsGithubLoading(false);
+    }
+  };
+
+  const fetchGitHubAppRepos = async (installationId) => {
+    setIsGithubLoading(true);
+    setGithubError(null);
+    try {
+      const url = installationId ? `/api/github/app/repos?installationId=${installationId}` : '/api/github/app/repos';
+      const res = await fetch(url, { credentials: 'include' });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to fetch repositories for GitHub App');
+      }
+      const data = await res.json();
+      return data.repositories || [];
+    } catch (err) {
+      setGithubError(err.message);
+      showToast(`Error fetching App repositories: ${err.message}`, "alert");
+      throw err;
+    } finally {
+      setIsGithubLoading(false);
+    }
+  };
+
+  const associateGitHubAppRepo = async (owner, repo, installationId, projectId = team?.id || 'team-hyperdrive') => {
+    setIsGithubLoading(true);
+    setGithubError(null);
+    try {
+      const res = await fetch('/api/github/app/associate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ owner, repo, installationId, projectId })
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to associate repository');
+      }
+      const data = await res.json();
+      const { repository, activities: newActivities } = data;
+
+      setGithubConnectedRepo(repository);
+      try {
+        localStorage.setItem('hackforge_github_repo', JSON.stringify(repository));
+      } catch (e) {
+        console.warn(e);
+      }
+
+      const updatedTeam = {
+        ...team,
+        githubRepo: repository.html_url,
+        repoOwner: repository.owner,
+        repoName: repository.name,
+        repoStatus: "Connected & Verified (GitHub App)",
+        branch: repository.default_branch,
+        commitsCount: repository.commits_count || repository.commit_count || team.commitsCount || 1,
+        linesChanged: repository.lines_changed || team.linesChanged || "+0 / -0",
+        lastCommitTime: repository.latest_commit ? new Date(repository.latest_commit.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Just now"
+      };
+      saveTeamState(updatedTeam);
+
+      if (newActivities && newActivities.length > 0) {
+        setActivities(prev => {
+          const existingIds = new Set(prev.map(a => a.id));
+          const filteredNew = newActivities.filter(a => !existingIds.has(a.id));
+          return [...filteredNew, ...prev];
+        });
+      }
+
+      showToast(`Connected repository "${repository.full_name}" via GitHub App!`, "default");
+      return data;
+    } catch (err) {
+      setGithubError(err.message);
+      showToast(`Association error: ${err.message}`, "alert");
+      throw err;
+    } finally {
+      setIsGithubLoading(false);
+    }
+  };
+
+  const disconnectGitHubApp = async (projectId = team?.id || 'team-hyperdrive') => {
+    try {
+      await fetch('/api/github/app/disconnect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ projectId })
+      });
+      setGithubConnectedRepo(null);
+      localStorage.removeItem('hackforge_github_repo');
+      showToast("GitHub App repository disconnected safely.", "default");
+    } catch (err) {
+      console.warn("Disconnect error:", err);
     }
   };
 
@@ -1008,7 +1131,13 @@ export function HackForgeProvider({ children }) {
         associateGitHubRepo,
         syncGitHubTelemetry,
         disconnectGitHub,
-        connectDirectToken
+        connectDirectToken,
+        // GitHub App Integration
+        githubAppStatus,
+        checkGitHubAppStatus,
+        fetchGitHubAppRepos,
+        associateGitHubAppRepo,
+        disconnectGitHubApp
       }}
     >
       {children}

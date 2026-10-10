@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Shield,
   ShieldCheck,
+  ShieldAlert,
   Lock,
   GitBranch,
   Search,
@@ -16,7 +17,10 @@ import {
   Info,
   Layers,
   ArrowRight,
-  Code2
+  Code2,
+  Trash2,
+  Globe,
+  Radio
 } from 'lucide-react';
 import GithubIcon from './GithubIcon';
 import { useHackForge } from '../context/HackForgeContext';
@@ -27,54 +31,86 @@ export default function GitHubConnectModal({ isOpen, onClose, projectId = 'team-
     githubConnectedRepo,
     isGithubLoading,
     githubError,
+    githubAppStatus,
+    checkGitHubAppStatus,
     checkGitHubAuthStatus,
+    fetchGitHubAppRepos,
+    associateGitHubAppRepo,
+    disconnectGitHubApp,
     fetchGitHubRepos,
     associateGitHubRepo,
     disconnectGitHub,
     showToast
   } = useHackForge();
 
-  const [step, setStep] = useState('connect'); // 'connect' | 'select_repo' | 'success'
+  // Mode: 'app' (GitHub App - Primary & Least Privilege) | 'token' (Direct Token Fallback)
+  const [connectMethod, setConnectMethod] = useState('app');
+  const [step, setStep] = useState('connect'); // 'connect' | 'select_repo' | 'success' | 'error'
   const [repositories, setRepositories] = useState([]);
   const [loadingRepos, setLoadingRepos] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRepo, setSelectedRepo] = useState(null);
-  const [directTokenInput, setDirectTokenInput] = useState('');
-  const [showDirectToken, setShowDirectToken] = useState(false);
-  const [isSubmittingToken, setIsSubmittingToken] = useState(false);
-  const [copiedCallback, setCopiedCallback] = useState(false);
   const [actionError, setActionError] = useState('');
+  const [directTokenInput, setDirectTokenInput] = useState('');
+  const [isSubmittingToken, setIsSubmittingToken] = useState(false);
 
   // Check connection status when opened
   useEffect(() => {
     if (isOpen) {
-      checkGitHubAuthStatus().then(user => {
-        if (user) {
+      setActionError('');
+      checkGitHubAppStatus().then(status => {
+        if (status?.activeInstallationId) {
           setStep('select_repo');
-          loadRepos();
+          loadAppRepos(status.activeInstallationId);
         } else {
-          setStep('connect');
+          // If already connected to a repo, show success/manage view
+          if (githubConnectedRepo) {
+            setStep('success');
+          } else {
+            setStep('connect');
+          }
         }
       });
     }
-  }, [isOpen]);
+  }, [isOpen, githubConnectedRepo]);
 
-  const loadRepos = async () => {
+  const loadAppRepos = async (installationId) => {
     setLoadingRepos(true);
     setActionError('');
     try {
-      const repos = await fetchGitHubRepos();
+      const repos = await fetchGitHubAppRepos(installationId);
       setRepositories(repos || []);
     } catch (err) {
-      setActionError(err.message || 'Failed to fetch repositories');
+      setActionError(err.message || 'Failed to fetch repositories authorized by GitHub App');
     } finally {
       setLoadingRepos(false);
     }
   };
 
-  const handleOAuthConnect = () => {
-    // Navigate to server OAuth initiation endpoint
+  const handleInstallGitHubApp = () => {
+    // Navigate to server GitHub App installation endpoint (CSRF state protected)
+    window.location.href = '/api/github/app/install';
+  };
+
+  const handleOAuthFallback = () => {
     window.location.href = '/api/auth/github';
+  };
+
+  const handleAssociateAppRepo = async (repo) => {
+    setSelectedRepo(repo);
+    setActionError('');
+    try {
+      await associateGitHubAppRepo(
+        repo.owner.login,
+        repo.name,
+        githubAppStatus?.activeInstallationId,
+        projectId
+      );
+      setStep('success');
+      showToast(`Associated ${repo.full_name} via GitHub App!`, 'default');
+    } catch (err) {
+      setActionError(err.message || 'Failed to associate repository');
+    }
   };
 
   const handleDirectTokenSubmit = async (e) => {
@@ -96,43 +132,36 @@ export default function GitHubConnectModal({ isOpen, onClose, projectId = 'team-
         throw new Error(data.message || 'Failed to authenticate token');
       }
 
-      showToast(`Authenticated as ${data.user.login}!`, 'default');
+      showToast(`Authenticated as @${data.user.login}!`, 'default');
       setDirectTokenInput('');
-      setShowDirectToken(false);
       await checkGitHubAuthStatus();
+      
+      const repos = await fetchGitHubRepos();
+      setRepositories(repos || []);
       setStep('select_repo');
-      loadRepos();
     } catch (err) {
-      setActionError(err.message || 'Failed to validate token');
+      setActionError(err.message || 'Failed to validate direct token');
     } finally {
       setIsSubmittingToken(false);
     }
   };
 
-  const handleAssociate = async (repo) => {
-    setSelectedRepo(repo);
-    setActionError('');
+  const handleDisconnect = async () => {
     try {
-      await associateGitHubRepo(repo.owner.login, repo.name, projectId);
-      setStep('success');
-      showToast(`Associated ${repo.full_name} with sprint!`, 'default');
+      await disconnectGitHubApp(projectId);
+      await disconnectGitHub();
+      setStep('connect');
+      setRepositories([]);
+      setSelectedRepo(null);
+      showToast('GitHub repository disconnected and telemetry cleared.', 'default');
     } catch (err) {
-      setActionError(err.message || 'Failed to associate repository');
+      setActionError(err.message || 'Failed to disconnect');
     }
-  };
-
-  const handleCopyCallbackUrl = () => {
-    const callbackUrl = `${window.location.origin}/api/auth/github/callback`;
-    navigator.clipboard.writeText(callbackUrl);
-    setCopiedCallback(true);
-    showToast('OAuth Callback URL copied!', 'default');
-    setTimeout(() => setCopiedCallback(false), 2500);
   };
 
   if (!isOpen) return null;
 
   const filteredRepos = repositories.filter(r =>
-    r.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     r.full_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -141,382 +170,479 @@ export default function GitHubConnectModal({ isOpen, onClose, projectId = 'team-
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(7, 8, 12, 0.85)',
-        backdropFilter: 'blur(10px)',
+        background: 'rgba(0, 0, 0, 0.85)',
+        backdropFilter: 'blur(8px)',
+        zIndex: 9999,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: 1000,
         padding: '20px'
       }}
-      onClick={onClose}
     >
       <div
         className="card"
-        onClick={e => e.stopPropagation()}
         style={{
-          maxWidth: '640px',
           width: '100%',
+          maxWidth: '640px',
           maxHeight: '90vh',
-          display: 'flex',
-          flexDirection: 'column',
-          padding: '28px',
+          overflowY: 'auto',
           background: 'var(--bg-card)',
-          border: '1px solid var(--border-glow)',
+          border: '1px solid var(--border-default)',
+          borderRadius: 'var(--radius-lg)',
           boxShadow: 'var(--shadow-lg)',
+          padding: '24px',
           position: 'relative'
         }}
       >
+        {/* Close Button */}
+        <button
+          onClick={onClose}
+          className="btn btn-ghost btn-sm"
+          style={{ position: 'absolute', top: '18px', right: '18px', padding: '6px' }}
+        >
+          <X size={18} />
+        </button>
+
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div
-              style={{
-                width: '42px',
-                height: '42px',
-                borderRadius: '10px',
-                background: '#24292e',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#fff',
-                border: '1px solid var(--border-subtle)'
-              }}
-            >
-              <GithubIcon size={24} />
-            </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <h3 style={{ fontSize: '1.25rem' }}>GitHub Integration Layer</h3>
-                <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>
-                  <ShieldCheck size={11} /> Secure OAuth
-                </span>
-              </div>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                Connect your real GitHub repository for automated commit auditing and Build Passport verification.
-              </p>
-            </div>
-          </div>
-
-          <button
-            onClick={onClose}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--text-muted)',
-              cursor: 'pointer',
-              padding: '4px'
-            }}
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* Action Error Banner */}
-        {actionError && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
           <div
             style={{
-              background: 'var(--accent-rose-dim)',
-              border: '1px solid var(--accent-rose)',
-              borderRadius: 'var(--radius-md)',
-              padding: '12px 14px',
-              fontSize: '0.82rem',
-              color: 'var(--text-primary)',
+              width: '42px',
+              height: '42px',
+              borderRadius: '10px',
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border-default)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--text-primary)'
+            }}
+          >
+            <GithubIcon size={24} />
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h2 style={{ fontSize: '1.25rem', margin: 0 }}>GitHub Integration</h2>
+              <span className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>
+                GITHUB APP (LEAST-PRIVILEGE)
+              </span>
+            </div>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>
+              Verify development velocity, commits, PRs, and tamper-evident code provenance.
+            </p>
+          </div>
+        </div>
+
+        {/* Global Error Banner */}
+        {(actionError || githubError) && (
+          <div
+            style={{
+              background: 'rgba(244, 63, 94, 0.1)',
+              border: '1px solid rgba(244, 63, 94, 0.3)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '10px 14px',
+              marginBottom: '16px',
               display: 'flex',
               alignItems: 'center',
               gap: '10px',
-              marginBottom: '16px'
+              color: 'var(--accent-rose)',
+              fontSize: '0.82rem'
             }}
           >
-            <AlertCircle size={16} color="var(--accent-rose)" style={{ flexShrink: 0 }} />
-            <span>{actionError}</span>
+            <AlertCircle size={16} style={{ flexShrink: 0 }} />
+            <span>{actionError || githubError}</span>
           </div>
         )}
 
-        {/* STEP 1: CONNECT GITHUB */}
+        {/* --------------------------------------------------------------- */}
+        {/* STEP 1: CONNECT & AUTHORIZATION                                 */}
+        {/* --------------------------------------------------------------- */}
         {step === 'connect' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div>
+            {/* Method Toggle */}
             <div
               style={{
+                display: 'flex',
                 background: 'var(--bg-surface)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-md)',
-                padding: '24px',
-                textAlign: 'center'
+                padding: '4px',
+                borderRadius: 'var(--radius-sm)',
+                marginBottom: '20px',
+                border: '1px solid var(--border-subtle)'
               }}
             >
-              <div style={{ maxWidth: '440px', margin: '0 auto 20px' }}>
-                <h4 style={{ fontSize: '1.1rem', marginBottom: '8px' }}>Authorize GitHub Access</h4>
-                <p style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                  HackForge OS requires read access to your repositories to track commits, pull requests, and calculate originality scores. Access tokens are stored securely server-side and never exposed to the client.
-                </p>
-              </div>
+              <button
+                type="button"
+                onClick={() => setConnectMethod('app')}
+                style={{
+                  flex: 1,
+                  padding: '8px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: 'none',
+                  background: connectMethod === 'app' ? 'var(--bg-card)' : 'transparent',
+                  color: connectMethod === 'app' ? 'var(--text-primary)' : 'var(--text-muted)',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}
+              >
+                <ShieldCheck size={14} color={connectMethod === 'app' ? 'var(--accent-emerald)' : 'currentColor'} />
+                <span>GitHub App (Recommended)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setConnectMethod('token')}
+                style={{
+                  flex: 1,
+                  padding: '8px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: 'none',
+                  background: connectMethod === 'token' ? 'var(--bg-card)' : 'transparent',
+                  color: connectMethod === 'token' ? 'var(--text-primary)' : 'var(--text-muted)',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px'
+                }}
+              >
+                <Key size={14} />
+                <span>Personal Access Token</span>
+              </button>
+            </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center' }}>
+            {connectMethod === 'app' ? (
+              <div>
+                {/* Security Value Proposition */}
+                <div
+                  style={{
+                    background: 'rgba(16, 185, 129, 0.05)',
+                    border: '1px solid rgba(16, 185, 129, 0.2)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '16px',
+                    marginBottom: '20px'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <ShieldCheck size={18} color="var(--accent-emerald)" />
+                    <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary)' }}>
+                      Granular Least-Privilege Repository Access
+                    </strong>
+                  </div>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: '0 0 12px 0' }}>
+                    Unlike traditional OAuth tokens that grant access to your entire GitHub account, HackForge uses a
+                    GitHub App. You choose <strong>only the specific repository</strong> you are hacking on.
+                  </p>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', fontSize: '0.74rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)' }}>
+                      <CheckCircle2 size={13} color="var(--accent-emerald)" /> Metadata: Read-only
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)' }}>
+                      <CheckCircle2 size={13} color="var(--accent-emerald)" /> Contents & Commits: Read-only
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)' }}>
+                      <CheckCircle2 size={13} color="var(--accent-emerald)" /> Pull Requests: Read-only
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)' }}>
+                      <CheckCircle2 size={13} color="var(--accent-emerald)" /> Issues: Read-only
+                    </div>
+                  </div>
+                </div>
+
+                {/* Primary Action Button */}
                 <button
                   type="button"
-                  onClick={handleOAuthConnect}
+                  onClick={handleInstallGitHubApp}
                   className="btn btn-primary"
                   style={{
-                    background: '#24292e',
-                    border: '1px solid var(--border-glow)',
-                    color: '#fff',
-                    padding: '12px 28px',
-                    fontSize: '0.95rem',
-                    fontWeight: 700,
-                    boxShadow: '0 4px 15px rgba(0,0,0,0.4)',
+                    width: '100%',
+                    padding: '12px',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '10px'
+                    justifyContent: 'center',
+                    gap: '10px',
+                    fontSize: '0.9rem'
                   }}
                 >
                   <GithubIcon size={18} />
-                  <span>Connect with GitHub OAuth</span>
+                  <span>Install GitHub App & Select Repository</span>
                   <ExternalLink size={14} />
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => setShowDirectToken(!showDirectToken)}
-                  className="btn btn-ghost btn-sm"
-                  style={{ fontSize: '0.78rem', color: 'var(--accent-cyan)' }}
-                >
-                  <Key size={13} />
-                  <span>{showDirectToken ? 'Hide Direct Token Option' : 'Or Use Personal Access Token (Direct)'}</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Direct Token Form (for instant testing without registering OAuth app) */}
-            {showDirectToken && (
-              <form onSubmit={handleDirectTokenSubmit} style={{ background: 'var(--bg-surface)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '0.85rem', fontWeight: 700, color: 'var(--accent-cyan)' }}>
-                  <Key size={14} />
-                  <span>Server-Side Personal Access Token</span>
+                {/* OAuth App fallback link */}
+                <div style={{ marginTop: '14px', textAlign: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={handleOAuthFallback}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--text-muted)',
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                      textDecoration: 'underline'
+                    }}
+                  >
+                    Or connect via OAuth App authorization
+                  </button>
                 </div>
-                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '12px' }}>
-                  Paste a GitHub PAT (with <code>repo</code> scope) for instant server-side authentication. The token is sent to the backend server and held only in secure memory.
+              </div>
+            ) : (
+              <div>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '14px' }}>
+                  Paste a GitHub Personal Access Token (PAT) with <code>repo</code> scope for local development:
                 </p>
-                <div style={{ display: 'flex', gap: '10px' }}>
+                <form onSubmit={handleDirectTokenSubmit}>
                   <input
                     type="password"
-                    placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
                     value={directTokenInput}
                     onChange={e => setDirectTokenInput(e.target.value)}
-                    className="form-input"
-                    style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}
-                    required
+                    placeholder="ghp_... or github_pat_..."
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      background: 'var(--bg-surface)',
+                      border: '1px solid var(--border-default)',
+                      borderRadius: 'var(--radius-sm)',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.85rem',
+                      fontFamily: 'var(--font-mono)',
+                      marginBottom: '14px'
+                    }}
                   />
                   <button
                     type="submit"
-                    disabled={isSubmittingToken}
-                    className="btn btn-primary btn-sm"
+                    disabled={isSubmittingToken || !directTokenInput.trim()}
+                    className="btn btn-primary"
+                    style={{ width: '100%', padding: '10px', fontSize: '0.85rem' }}
                   >
-                    {isSubmittingToken ? 'Validating...' : 'Authenticate'}
+                    {isSubmittingToken ? 'Validating Token...' : 'Authenticate Token'}
                   </button>
-                </div>
-              </form>
-            )}
-
-            {/* OAuth Credentials Setup Guide */}
-            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)', fontSize: '0.78rem' }}>
-              <div style={{ fontWeight: 700, marginBottom: '6px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Info size={14} color="var(--accent-cyan)" />
-                <span>How to configure GitHub OAuth credentials in .env</span>
+                </form>
               </div>
-              <ol style={{ paddingLeft: '18px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                <li>Create an OAuth App at <a href="https://github.com/settings/developers" target="_blank" rel="noreferrer" style={{ color: 'var(--accent-cyan)', textDecoration: 'underline' }}>github.com/settings/developers</a>.</li>
-                <li>Set Authorization callback URL to: <code style={{ color: 'var(--accent-emerald)', background: 'var(--bg-surface)', padding: '2px 4px', borderRadius: '3px' }}>http://localhost:5173/api/auth/github/callback</code>
-                  <button type="button" onClick={handleCopyCallbackUrl} style={{ background: 'none', border: 'none', color: 'var(--accent-cyan)', cursor: 'pointer', marginLeft: '6px' }}>
-                    {copiedCallback ? <Check size={12} color="var(--accent-emerald)" /> : <Copy size={12} />}
-                  </button>
-                </li>
-                <li>Copy <strong>Client ID</strong> and generate a <strong>Client Secret</strong>, then paste them into <code>.env</code>.</li>
-              </ol>
-            </div>
+            )}
           </div>
         )}
 
-        {/* STEP 2: SELECT REPOSITORY */}
+        {/* --------------------------------------------------------------- */}
+        {/* STEP 2: SELECT AUTHORIZED REPOSITORY                            */}
+        {/* --------------------------------------------------------------- */}
         {step === 'select_repo' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1, minHeight: 0 }}>
-            {/* Authenticated user badge */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-surface)', padding: '10px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                {githubUser?.avatar_url && (
-                  <img src={githubUser.avatar_url} alt={githubUser.login} style={{ width: '28px', height: '28px', borderRadius: '50%' }} />
-                )}
-                <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Connected as <strong style={{ color: 'var(--accent-cyan)' }}>@{githubUser?.login}</strong></span>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <div>
+                <h3 style={{ fontSize: '1rem', margin: 0 }}>Select Project Repository</h3>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  Repositories authorized under your GitHub App installation:
+                </span>
               </div>
               <button
                 type="button"
-                onClick={async () => {
-                  await disconnectGitHub();
-                  setStep('connect');
-                }}
-                className="btn btn-ghost btn-sm"
-                style={{ fontSize: '0.75rem', color: 'var(--accent-rose)' }}
+                onClick={() => loadAppRepos(githubAppStatus?.activeInstallationId)}
+                disabled={loadingRepos}
+                className="btn btn-secondary btn-sm"
               >
-                Disconnect
+                <RefreshCw size={12} className={loadingRepos ? 'spin' : ''} />
+                <span>Refresh</span>
               </button>
             </div>
 
             {/* Search Input */}
-            <div style={{ position: 'relative' }}>
-              <Search size={15} color="var(--text-muted)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+            <div style={{ position: 'relative', marginBottom: '14px' }}>
+              <Search
+                size={14}
+                color="var(--text-muted)"
+                style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }}
+              />
               <input
                 type="text"
-                placeholder="Search your real GitHub repositories..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                className="form-input"
-                style={{ paddingLeft: '34px', fontSize: '0.82rem' }}
+                placeholder="Search repository name..."
+                style={{
+                  width: '100%',
+                  padding: '8px 12px 8px 34px',
+                  background: 'var(--bg-surface)',
+                  border: '1px solid var(--border-default)',
+                  borderRadius: 'var(--radius-sm)',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.82rem',
+                  fontFamily: 'var(--font-mono)'
+                }}
               />
             </div>
 
-            {/* Repositories Scrollable List */}
-            <div style={{ overflowY: 'auto', flex: 1, maxHeight: '340px', display: 'flex', flexDirection: 'column', gap: '8px', paddingRight: '4px' }}>
-              {loadingRepos ? (
-                <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
-                  <RefreshCw size={20} className="spin" style={{ margin: '0 auto 8px' }} />
-                  <div>Querying GitHub REST API for your repositories...</div>
-                </div>
-              ) : filteredRepos.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                  No repositories found matching "{searchTerm}".
-                </div>
-              ) : (
-                filteredRepos.map(repo => {
-                  const isCurrent = githubConnectedRepo?.name === repo.name;
-                  return (
-                    <div
-                      key={repo.id}
-                      style={{
-                        background: 'var(--bg-surface)',
-                        border: isCurrent ? '1px solid var(--accent-emerald)' : '1px solid var(--border-subtle)',
-                        borderRadius: 'var(--radius-md)',
-                        padding: '12px 16px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: '12px'
-                      }}
-                    >
-                      <div style={{ overflow: 'hidden' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
-                          <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
-                            {repo.name}
+            {/* Repositories List */}
+            {loadingRepos ? (
+              <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <RefreshCw size={24} className="spin" style={{ marginBottom: '8px', color: 'var(--accent-cyan)' }} />
+                <div style={{ fontSize: '0.82rem' }}>Loading authorized repositories...</div>
+              </div>
+            ) : filteredRepos.length === 0 ? (
+              <div
+                style={{
+                  padding: '30px 20px',
+                  textAlign: 'center',
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px dashed var(--border-default)'
+                }}
+              >
+                <ShieldAlert size={28} color="var(--accent-amber)" style={{ marginBottom: '8px' }} />
+                <h4 style={{ fontSize: '0.9rem', marginBottom: '4px' }}>No Repositories Authorized</h4>
+                <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', maxWidth: '400px', margin: '0 auto 14px auto' }}>
+                  If you selected "Only select repositories" during app installation, ensure you added your hackathon repo.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleInstallGitHubApp}
+                  className="btn btn-secondary btn-sm"
+                >
+                  Configure Repository Access on GitHub
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '320px', overflowY: 'auto' }}>
+                {filteredRepos.map(repo => (
+                  <div
+                    key={repo.id}
+                    onClick={() => handleAssociateAppRepo(repo)}
+                    style={{
+                      background: 'var(--bg-surface)',
+                      padding: '12px 16px',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--border-subtle)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      cursor: 'pointer',
+                      transition: 'border-color var(--transition-fast)'
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--accent-cyan)')}
+                    onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border-subtle)')}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                        <GitBranch size={14} color="var(--accent-cyan)" />
+                        <strong style={{ fontSize: '0.88rem', color: 'var(--text-primary)' }}>
+                          {repo.full_name}
+                        </strong>
+                        {repo.private && (
+                          <span className="badge badge-muted" style={{ fontSize: '0.62rem' }}>
+                            PRIVATE
                           </span>
-                          <span className={`badge ${repo.private ? 'badge-amber' : 'badge-muted'}`} style={{ fontSize: '0.62rem' }}>
-                            {repo.private ? 'PRIVATE' : 'PUBLIC'}
-                          </span>
-                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                            branch: {repo.default_branch}
-                          </span>
-                        </div>
-                        {repo.description && (
-                          <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {repo.description}
-                          </p>
                         )}
                       </div>
-
-                      <button
-                        type="button"
-                        onClick={() => handleAssociate(repo)}
-                        disabled={isGithubLoading}
-                        className="btn btn-secondary btn-sm"
-                        style={{
-                          flexShrink: 0,
-                          fontSize: '0.75rem',
-                          background: isCurrent ? 'var(--accent-emerald-dim)' : undefined,
-                          borderColor: isCurrent ? 'var(--accent-emerald)' : undefined,
-                          color: isCurrent ? 'var(--accent-emerald)' : undefined
-                        }}
-                      >
-                        {isGithubLoading && selectedRepo?.id === repo.id ? (
-                          <>
-                            <RefreshCw size={12} className="spin" />
-                            <span>Scanning...</span>
-                          </>
-                        ) : isCurrent ? (
-                          <>
-                            <Check size={12} />
-                            <span>Associated</span>
-                          </>
-                        ) : (
-                          <>
-                            <span>Select Repo</span>
-                            <ArrowRight size={12} />
-                          </>
-                        )}
-                      </button>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        Default branch: <code>{repo.default_branch}</code> {repo.language ? `• ${repo.language}` : ''}
+                      </div>
                     </div>
-                  );
-                })
-              )}
-            </div>
+
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+                    >
+                      Connect
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
-        {/* STEP 3: SUCCESS CONFIRMATION */}
+        {/* --------------------------------------------------------------- */}
+        {/* STEP 3: CONNECTED & VERIFIED STATUS                             */}
+        {/* --------------------------------------------------------------- */}
         {step === 'success' && githubConnectedRepo && (
-          <div style={{ textAlign: 'center', padding: '20px 10px' }}>
+          <div>
             <div
               style={{
-                width: '64px',
-                height: '64px',
-                borderRadius: '50%',
-                background: 'var(--accent-emerald-dim)',
-                color: 'var(--accent-emerald)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 16px',
-                border: '2px solid var(--accent-emerald)'
+                background: 'rgba(16, 185, 129, 0.08)',
+                border: '1px solid rgba(16, 185, 129, 0.25)',
+                borderRadius: 'var(--radius-md)',
+                padding: '18px',
+                marginBottom: '20px'
               }}
             >
-              <CheckCircle2 size={32} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                <CheckCircle2 size={20} color="var(--accent-emerald)" />
+                <h3 style={{ fontSize: '1.05rem', margin: 0, color: 'var(--text-primary)' }}>
+                  Repository Verified & Synchronized
+                </h3>
+              </div>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0 0 14px 0' }}>
+                Telemetric commit records, PRs, and issues are now streaming into HackForge for tamper-evident Build Passport verification.
+              </p>
+
+              {/* Connected Repo Card */}
+              <div
+                style={{
+                  background: 'var(--bg-surface)',
+                  padding: '12px 14px',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border-default)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '10px'
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <GitBranch size={15} color="var(--accent-emerald)" />
+                    <strong style={{ fontSize: '0.92rem', color: 'var(--text-primary)' }}>
+                      {githubConnectedRepo.full_name || `${githubConnectedRepo.owner}/${githubConnectedRepo.name}`}
+                    </strong>
+                  </div>
+                  <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                    Branch: {githubConnectedRepo.default_branch || 'main'} • Synced at: {new Date(githubConnectedRepo.synced_at || Date.now()).toLocaleTimeString()}
+                  </div>
+                </div>
+
+                <a
+                  href={githubConnectedRepo.html_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn btn-secondary btn-sm"
+                  style={{ fontSize: '0.74rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                >
+                  <span>Open on GitHub</span>
+                  <ExternalLink size={12} />
+                </a>
+              </div>
             </div>
 
-            <h4 style={{ fontSize: '1.25rem', marginBottom: '8px' }}>Repository Successfully Linked!</h4>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', maxWidth: '440px', margin: '0 auto 20px' }}>
-              Live telemetry is now active for <strong style={{ color: 'var(--accent-cyan)' }}>{githubConnectedRepo.full_name}</strong>. Real commits, PRs, and branches are flowing into your sprint timeline.
-            </p>
-
-            <div style={{ background: 'var(--bg-surface)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)', textAlign: 'left', maxWidth: '440px', margin: '0 auto 24px', fontSize: '0.8rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Owner:</span>
-                <strong>{githubConnectedRepo.owner}</strong>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Default Branch:</span>
-                <span style={{ fontFamily: 'var(--font-mono)' }}>{githubConnectedRepo.default_branch}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Commits Captured:</span>
-                <span style={{ color: 'var(--accent-emerald)', fontWeight: 700 }}>{githubConnectedRepo.commits_count}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--text-muted)' }}>Repository Created:</span>
-                <span>{new Date(githubConnectedRepo.created_at).toLocaleDateString()}</span>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
+            {/* Management Actions */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
               <button
                 type="button"
-                onClick={onClose}
-                className="btn btn-primary"
-                style={{ padding: '10px 24px' }}
+                onClick={() => setStep('select_repo')}
+                className="btn btn-secondary btn-sm"
               >
-                <span>Done & View Timeline</span>
-                <ArrowRight size={14} />
+                Switch Repository
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDisconnect}
+                className="btn btn-secondary btn-sm"
+                style={{ borderColor: 'rgba(244, 63, 94, 0.4)', color: 'var(--accent-rose)', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <Trash2 size={13} />
+                <span>Disconnect Repository</span>
               </button>
             </div>
           </div>
         )}
-
       </div>
     </div>
   );

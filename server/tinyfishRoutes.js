@@ -141,22 +141,25 @@ export function createTinyFishRouter() {
     const payload = {
       url: urlValidation.sanitizedUrl,
       goal: goalValidation.sanitizedGoal,
-      browser_profile: browser_profile === 'stealth' ? 'stealth' : 'lite',
-      api_integration: 'hackforge',
-      agent_config: {
-        mode: agent_config.mode === 'strict' ? 'strict' : 'default',
-        cursor_style: 'standard',
-        max_steps: typeof agent_config.max_steps === 'number' ? Math.min(Math.max(agent_config.max_steps, 5), 150) : 50,
-        max_duration_seconds: typeof agent_config.max_duration_seconds === 'number' ? Math.min(Math.max(agent_config.max_duration_seconds, 30), 600) : 300
-      }
+      browser_profile: browser_profile === 'stealth' ? 'stealth' : 'lite'
     };
+
+    // Include agent_config if requested and avoid beta-only custom max_steps
+    if (agent_config && (agent_config.mode || agent_config.cursor_style)) {
+      payload.agent_config = {
+        mode: agent_config.mode === 'strict' ? 'strict' : 'default',
+        cursor_style: 'standard'
+      };
+    }
 
     const abortController = new AbortController();
     activeResearchStreams++;
 
-    // Client connection lifecycle
-    req.on('close', () => {
-      abortController.abort();
+    // Client connection lifecycle: abort only if the response is closed prematurely
+    res.on('close', () => {
+      if (!res.writableEnded) {
+        abortController.abort();
+      }
     });
 
     try {

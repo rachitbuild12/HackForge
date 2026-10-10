@@ -193,12 +193,12 @@ export const TEAM_ROLES = [
 ];
 
 export const currentTeam = {
-  id: "team-hyperdrive",
+  id: "team-nexus",
   hackathonId: "eth-global-2026",
-  name: "HyperDrive Protocol",
+  name: "Nexus Sentinel",
   avatar: "⚡",
-  slogan: "Autonomous high-velocity agent settlement layer with instant ZK receipts",
-  inviteCode: "FORGE-7X9Q",
+  slogan: "High-velocity off-chain state channel network with zero-knowledge instant settlement receipts",
+  inviteCode: "NEXUS-FORGE-2026",
   problemStatementId: "ps-1",
   problemStatementTitle: "Autonomous Agent-to-Agent Micro-Settlement Protocol",
   githubRepo: null,
@@ -207,17 +207,17 @@ export const currentTeam = {
   commitsCount: 0,
   linesChanged: "+0 / -0",
   lastCommitTime: "No commits yet",
-  integrityScore: 97.4,
-  xpEarned: 2450,
-  leaderboardRank: 3,
+  integrityScore: null,
+  xpEarned: 0,
+  leaderboardRank: null,
   members: [
     {
       id: "usr_9021",
       name: "Alex 'Kaelen' Chen",
       role: "Team Leader",
       avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
-      commits: 18,
-      xp: 1200,
+      commits: 0,
+      xp: 0,
       status: "Active now"
     },
     {
@@ -225,8 +225,8 @@ export const currentTeam = {
       name: "Sophia Zhang",
       role: "Frontend",
       avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
-      commits: 11,
-      xp: 750,
+      commits: 0,
+      xp: 0,
       status: "Active 25m ago"
     },
     {
@@ -234,8 +234,8 @@ export const currentTeam = {
       name: "Marcus Vance",
       role: "AI/ML",
       avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
-      commits: 8,
-      xp: 500,
+      commits: 0,
+      xp: 0,
       status: "Active 1h ago"
     }
   ],
@@ -417,12 +417,12 @@ export const initialQuests = [
 export const initialActivities = [];
 
 export const currentBuildPassport = {
-  passportId: "HFP-2026-9842A-77",
-  projectId: "PROJ-HYPERDRIVE-2026",
-  qrCodeUrl: "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=https://hackforge.dev/verify/HFP-2026-9842A-77",
-  publicVerificationUrl: "https://hackforge.dev/verify/HFP-2026-9842A-77",
-  projectName: "HyperDrive Protocol",
-  teamName: "HyperDrive Protocol",
+  passportId: "HFP-2026-NEXUS-01",
+  projectId: "PROJ-NEXUS-2026",
+  qrCodeUrl: "https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=https://hackforge.dev/verify/HFP-2026-NEXUS-01",
+  publicVerificationUrl: "https://hackforge.dev/verify/HFP-2026-NEXUS-01",
+  projectName: "Nexus Sentinel Engine",
+  teamName: "Nexus Sentinel",
   hackathonName: "ETHGlobal Autonomous 2026",
   problemStatement: "Autonomous Agent-to-Agent Micro-Settlement Friction: AI agents executing high-frequency autonomous workflows are bottlenecked by L1 gas fees and non-verifiable latency.",
   projectDescription: "A high-velocity off-chain state channel network backed by zero-knowledge receipts and an on-chain smart contract vault for trustless instant settlement.",
@@ -442,18 +442,18 @@ export const currentBuildPassport = {
 
   // PROJECT DATA
   project: {
-    name: "HyperDrive Protocol",
-    teamName: "HyperDrive Protocol",
+    name: "Nexus Sentinel Engine",
+    teamName: "Nexus Sentinel",
     problemStatement: "Autonomous Agent-to-Agent Micro-Settlement Friction: AI agents executing high-frequency autonomous workflows are bottlenecked by L1 gas fees and non-verifiable latency.",
     description: "A high-velocity off-chain state channel network backed by zero-knowledge receipts and an on-chain smart contract vault for trustless instant settlement.",
     category: "Autonomous AI Agents & DeFi",
     track: "Autonomous Agents",
-    repoUrl: "https://github.com/hyperdrive-protocol/settlement-engine"
+    repoUrl: "https://github.com/hackforge-demo/nexus-sentinel"
   },
 
   // TEAM SECTION
   team: {
-    name: "HyperDrive Protocol",
+    name: "Nexus Sentinel",
     members: [
       {
         id: "usr_9021",
@@ -815,8 +815,8 @@ export const organizerJudgingCriteria = [
 export const mockJudgeQueue = [
   {
     id: "proj-1",
-    name: "HyperDrive Protocol",
-    teamName: "HyperDrive Protocol",
+    name: "Nexus Sentinel Engine",
+    teamName: "Nexus Sentinel",
     track: "Autonomous Agents",
     problemStatement: {
       title: "Autonomous Agent-to-Agent Micro-Settlement Protocol",
@@ -825,9 +825,9 @@ export const mockJudgeQueue = [
       bounty: "$25,000",
       description: "Develop high-throughput, low-latency micro-payment channels between AI agents negotiating real-time inference tasks without human intervention."
     },
-    tagline: "Autonomous high-velocity agent settlement layer with instant ZK receipts",
-    repoUrl: "https://github.com/hyperdrive-protocol/settlement-engine",
-    demoUrl: "https://hyperdrive-settle.vercel.app",
+    tagline: "High-velocity off-chain state channel network with zero-knowledge instant settlement receipts",
+    repoUrl: "https://github.com/hackforge-demo/nexus-sentinel",
+    demoUrl: "https://nexus-sentinel.vercel.app",
     status: "PENDING_REVIEW",
     scores: {
       execution: 9.0,
@@ -838,8 +838,8 @@ export const mockJudgeQueue = [
     },
     notes: "Outstanding verifiable commit lineage. The off-chain ZK state channels resolve sub-second agent payments with zero gas overhead.",
     executiveSummary: {
-      whatBuilt: "HyperDrive Protocol is an autonomous micro-settlement engine that allows high-frequency AI agents to execute sub-second value transfers without incurring on-chain L1 gas fees. It couples a Next.js 14 telemetry HUD with an asynchronous Python FastAPI inference engine and an EVM state channel smart contract that verifies zero-knowledge transaction receipts.",
-      coreValue: "Solves the fundamental agentic commerce dilemma: AI agents running millions of micro-tasks cannot afford $0.15 - $2.00 in gas fees per decision. HyperDrive batches 10,000+ interactions off-chain and settles with cryptographic finality."
+      whatBuilt: "Nexus Sentinel Engine is an autonomous micro-settlement engine that allows high-frequency AI agents to execute sub-second value transfers without incurring on-chain L1 gas fees. It couples a Next.js 14 telemetry HUD with an asynchronous Python FastAPI inference engine and an EVM state channel smart contract that verifies zero-knowledge transaction receipts.",
+      coreValue: "Solves the fundamental agentic commerce dilemma: AI agents running millions of micro-tasks cannot afford $0.15 - $2.00 in gas fees per decision. Nexus Sentinel batches 10,000+ interactions off-chain and settles with cryptographic finality."
     },
     buildJourney: [
       { time: "Day 1, 10:14 UTC", phase: "Genesis & Setup", actor: "Alex Chen", event: "Cloned & whitelisted next-viem-starter template; initialized Foundry repo", type: "COMMIT", hash: "a10b42f" },

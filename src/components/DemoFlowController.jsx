@@ -208,7 +208,7 @@ export default function DemoFlowController() {
               </span>
             </div>
             <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>
-              Step {demoStep} of 12 • HackForge Grand Challenge
+              Step {demoStep} of 12 • ETHGlobal Autonomous 2026
             </div>
           </div>
         </div>

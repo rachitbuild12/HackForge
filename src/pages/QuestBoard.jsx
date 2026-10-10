@@ -8,7 +8,7 @@ import XPProgress from '../components/XPProgress';
 
 export default function QuestBoard() {
   const { id } = useParams();
-  const { quests, user, team, evaluateActivityForMilestones } = useHackForge();
+  const { quests, user, team, evaluateActivityForMilestones, isDemoMode } = useHackForge();
   const [selectedPhase, setSelectedPhase] = useState('ALL');
   const [selectedStatus, setSelectedStatus] = useState('ALL');
 
@@ -55,6 +55,11 @@ export default function QuestBoard() {
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
                 {completedCount}/{quests.length} MILESTONES COMPLETED
               </span>
+              {isDemoMode && (
+                <span className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>
+                  SIMULATED DEMO DATA
+                </span>
+              )}
             </div>
             <h1 style={{ fontSize: '1.8rem' }}>Sprint Quest & Milestone Board</h1>
             <p className="page-subtitle">
@@ -72,7 +77,7 @@ export default function QuestBoard() {
                 TEAM VAULT BOUNTY
               </div>
               <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--accent-emerald)', fontFamily: 'var(--font-mono)' }}>
-                {(team?.xpEarned || team?.xp || 2450).toLocaleString()} XP
+                {((team?.xpEarned ?? team?.xp ?? 0)).toLocaleString()} XP
               </div>
             </div>
           </div>

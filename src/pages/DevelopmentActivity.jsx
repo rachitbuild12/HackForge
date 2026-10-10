@@ -10,7 +10,7 @@ import Leaderboard from '../components/Leaderboard';
 
 export default function DevelopmentActivity() {
   const { id } = useParams();
-  const { activities, team, leaderboard, githubConnectedRepo, githubUser } = useHackForge();
+  const { activities, team, leaderboard, githubConnectedRepo, githubUser, isDemoMode } = useHackForge();
 
   return (
     <div className="workspace-layout">
@@ -22,16 +22,27 @@ export default function DevelopmentActivity() {
         <div className="page-header">
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-              <span className="badge badge-emerald">
-                <span className="pulse-dot" /> STREAMING LIVE TELEMETRY
-              </span>
+              {isDemoMode ? (
+                <span className="badge badge-cyan">
+                  SIMULATED DEMO TELEMETRY
+                </span>
+              ) : githubConnectedRepo ? (
+                <span className="badge badge-emerald">
+                  <span className="pulse-dot" /> STREAMING LIVE TELEMETRY
+                </span>
+              ) : (
+                <span className="badge badge-rose">
+                  REPOSITORY NOT CONNECTED
+                </span>
+              )}
+
               {githubConnectedRepo ? (
                 <span className="badge badge-cyan" style={{ fontSize: '0.72rem', fontFamily: 'var(--font-mono)' }}>
                   <GithubIcon size={12} /> {githubConnectedRepo.full_name}
                 </span>
               ) : (
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                  GITHUB SYNC ENGINE: ACTIVE
+                  {isDemoMode ? "DEMO REPO: @hackforge-demo/nexus-sentinel" : "AWAITING GITHUB CONNECTION"}
                 </span>
               )}
             </div>
@@ -45,11 +56,15 @@ export default function DevelopmentActivity() {
           <div style={{ display: 'flex', gap: '12px' }}>
             <div className="card" style={{ padding: '8px 16px', background: 'var(--bg-surface)' }}>
               <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>TOTAL COMMITS</div>
-              <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>{team.commitsCount}</div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>
+                {team?.commitsCount ?? (activities?.length || 0)}
+              </div>
             </div>
             <div className="card" style={{ padding: '8px 16px', background: 'var(--bg-surface)' }}>
               <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>INTEGRITY SCORE</div>
-              <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--accent-emerald)', fontFamily: 'var(--font-mono)' }}>{team?.integrityScore || 97.4}%</div>
+              <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--accent-emerald)', fontFamily: 'var(--font-mono)' }}>
+                {isDemoMode ? '96.4%' : team?.integrityScore != null ? `${team.integrityScore}%` : githubConnectedRepo ? 'Auditing...' : 'Not Connected'}
+              </div>
             </div>
           </div>
         </div>

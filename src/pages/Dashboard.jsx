@@ -9,7 +9,7 @@ import AIInsightCard from '../components/AIInsightCard';
 import ActivityTimeline from '../components/ActivityTimeline';
 
 export default function Dashboard() {
-  const { user, team, quests, activities, activeHackathon, passport, aiInsights } = useHackForge();
+  const { user, team, quests, activities, activeHackathon, passport, aiInsights, isDemoMode, githubConnectedRepo } = useHackForge();
 
   const claimableQuests = quests.filter(q => q.status === 'CLAIMABLE');
   const activeQuests = quests.filter(q => q.status === 'IN_PROGRESS');
@@ -27,6 +27,11 @@ export default function Dashboard() {
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
               WINDOW: 48 HOURS
             </span>
+            {isDemoMode && (
+              <span className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>
+                SIMULATED DEMO DATA
+              </span>
+            )}
           </div>
           <h1 style={{ fontSize: '2rem' }}>Welcome back, {user.name.split(' ')[0]}</h1>
           <p className="page-subtitle">
@@ -68,15 +73,37 @@ export default function Dashboard() {
               <span style={{ fontSize: '0.72rem', textTransform: 'uppercase', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
                 BUILD PASSPORT READINESS
               </span>
-              <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>
-                97.4% Clean
-              </span>
+              {isDemoMode ? (
+                <span className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>
+                  96.4% Clean (Simulated)
+                </span>
+              ) : team?.integrityScore != null ? (
+                <span className="badge badge-emerald" style={{ fontSize: '0.65rem' }}>
+                  {team.integrityScore}% Clean
+                </span>
+              ) : githubConnectedRepo ? (
+                <span className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>
+                  Awaiting Telemetry
+                </span>
+              ) : (
+                <span className="badge badge-rose" style={{ fontSize: '0.65rem' }}>
+                  Not Connected
+                </span>
+              )}
             </div>
             <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)' }}>
               {team.name}
             </div>
             <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Cryptographic integrity verified. Ready to submit when demo video is uploaded.
+              {isDemoMode ? (
+                "Seeded demo telemetry loaded. Review alert pending organizer countersignature."
+              ) : team?.integrityScore != null ? (
+                `Verified repository audit across ${team.commitsCount || 0} commits.`
+              ) : githubConnectedRepo ? (
+                `Repo linked (@${githubConnectedRepo.full_name}). Push commits during sprint to compute provenance score.`
+              ) : (
+                "Connect GitHub repository to track sprint cadence and generate verifiable Build Passport."
+              )}
             </div>
           </div>
 

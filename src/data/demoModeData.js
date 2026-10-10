@@ -4,24 +4,24 @@
 // simulated/seeded demo telemetry. Not real GitHub API events.
 // =========================================================
 
-export const DEMO_HACKATHON_ID = "hackforge-grand-challenge";
+export const DEMO_HACKATHON_ID = "eth-global-2026";
 
 export const demoHackathon = {
   id: DEMO_HACKATHON_ID,
-  title: "HackForge Grand Challenge",
-  tagline: "Flagship 48-Hour Autonomous Systems & Verifiable Architecture Sprint",
+  title: "ETHGlobal Autonomous 2026",
+  tagline: "Build autonomous on-chain agents and verifiable AI protocols",
   banner: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&auto=format&fit=crop&q=80",
   status: "LIVE",
   startsAt: "2026-10-06T10:00:00Z",
   endsAt: "2026-10-08T10:00:00Z",
   timeLeft: "28h 14m remaining",
-  prizePool: "$100,000",
-  participantsCount: 12,
-  teamsCount: 3,
-  format: "Hybrid (San Francisco + Virtual)",
-  location: "San Francisco / Virtual",
+  prizePool: "$150,000",
+  participantsCount: 842,
+  teamsCount: 196,
+  format: "Virtual / Global",
+  location: "Global / Online",
   maxTeamSize: 4,
-  organizer: "HackForge Foundation (Elena Vance)",
+  organizer: "ETHGlobal & HackForge Foundation",
   isDemoMode: true,
   tracks: [
     { name: "Autonomous Agents", bounty: "$40,000", description: "AI Agent-to-Agent Micro-Settlement Protocols" },
@@ -494,7 +494,7 @@ export const demoBuildPassport = {
   publicVerificationUrl: "https://hackforge.dev/verify/HFP-DEMO-2026-NEXUS",
   projectName: "Nexus Sentinel Engine",
   teamName: "Nexus Sentinel",
-  hackathonName: "HackForge Grand Challenge",
+  hackathonName: "ETHGlobal Autonomous 2026",
   problemStatement: "Autonomous Agent-to-Agent Micro-Settlement Friction: AI agents executing high-frequency autonomous workflows are bottlenecked by L1 gas fees and non-verifiable latency.",
   projectDescription: "A high-velocity off-chain state channel network backed by zero-knowledge receipts and an on-chain smart contract vault for trustless instant settlement.",
   cryptographicHash: "sha256:7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069",
@@ -563,7 +563,7 @@ export const DEMO_STEPS = [
     shortName: "Organizer Configures Sprint",
     role: "organizer",
     route: "/organizer/create",
-    headline: "Step 1: Organizer Deploys HackForge Grand Challenge",
+    headline: "Step 1: Organizer Deploys ETHGlobal Autonomous 2026",
     description: "The hackathon organizer configures sprint rules, allowed starter repositories, problem statements, and integrity audit thresholds through the 5-step wizard.",
     bannerText: "DEMO STEP 1 OF 12 • ORGANIZER PERSPECTIVE",
     icon: "Shield"

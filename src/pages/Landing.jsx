@@ -21,11 +21,11 @@ export default function Landing() {
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'var(--bg-surface)', border: '1px solid var(--border-default)', padding: '6px 14px', borderRadius: 'var(--radius-full)', marginBottom: '24px' }}>
             <span className="pulse-dot" />
             <span style={{ fontSize: '0.78rem', color: 'var(--accent-emerald)', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
-              HACKFORGE OS 2.4 LIVE
+              HACKFORGE SPRINT ENGINE
             </span>
             <span style={{ color: 'var(--text-dim)' }}>•</span>
             <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-              Over $380,000 In Active Bounties
+              Deterministic Telemetry, Quests & Verifiable Build Passports
             </span>
           </div>
 
@@ -33,8 +33,9 @@ export default function Landing() {
             The Gamified Operating System for <span style={{ background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 50%, #8b5cf6 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Hackathons</span>
           </h1>
 
-          <p style={{ fontSize: '1.15rem', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '32px', maxWidth: '720px', margin: '0 auto 32px auto' }}>
-            Empower builders with milestone quests and XP. Give organizers transparent build telemetry and automated integrity sentinel alerts. Verify every submission with tamper-evident <strong>Build Passports</strong>.
+          <p style={{ fontSize: '1.1rem', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '32px', maxWidth: '780px', margin: '0 auto 32px auto' }}>
+            Built for <strong>builders</strong>, <strong>organizers</strong>, and <strong>judges</strong>.
+            Transform problem tracks into milestone quests, stream real GitHub telemetry, resolve blockers with the TinyFish research Copilot, and seal tamper-evident <strong>Build Passports</strong> with cryptographic lineage.
           </p>
 
           {/* CTA Buttons */}
@@ -51,18 +52,23 @@ export default function Landing() {
               }}
             >
               <Sparkles size={18} />
-              <span>Run 5-Min Hackathon Demo</span>
+              <span>Run 5-Min Guided Demo</span>
             </Link>
 
-            <Link to="/hackathons/eth-global-2026/quests" className="btn btn-secondary btn-lg">
+            <Link to="/hackathons/eth-global-2026/team" className="btn btn-secondary btn-lg">
               <Zap size={18} fill="currentColor" />
-              <span>Launch Live Workspace</span>
+              <span>Enter Team Workspace</span>
               <ArrowRight size={16} />
             </Link>
 
             <Link to="/organizer" className="btn btn-secondary btn-lg">
               <ShieldCheck size={18} />
-              <span>Organizer Control Center</span>
+              <span>Organizer Center</span>
+            </Link>
+
+            <Link to="/judge" className="btn btn-ghost btn-lg">
+              <Trophy size={18} />
+              <span>Judge Queue</span>
             </Link>
           </div>
         </div>
@@ -78,11 +84,11 @@ export default function Landing() {
               <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#f59e0b' }} />
               <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10b981' }} />
               <span style={{ marginLeft: '8px', fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                hackforge://session/eth-global-2026/team-hyperdrive
+                hackforge://session/eth-global-2026/nexus-sentinel
               </span>
             </div>
-            <span className="badge badge-emerald">
-              <span className="pulse-dot" /> BUILD TELEMETRY ACTIVE
+            <span className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>
+              SIMULATED DEMO PREVIEW
             </span>
           </div>
 
@@ -90,13 +96,13 @@ export default function Landing() {
           <div className="grid-3" style={{ gap: '16px' }}>
             <div style={{ background: 'var(--bg-surface)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)' }}>
               <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', marginBottom: '4px' }}>
-                LIVE SPRINT VELOCITY
+                SPRINT CADENCE TELEMETRY
               </div>
               <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--accent-emerald)', fontFamily: 'var(--font-mono)' }}>
                 37 Commits
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                All commits verified against hackathon window
+                Distributed organically across 4 squad members
               </div>
             </div>
 
@@ -105,10 +111,10 @@ export default function Landing() {
                 ORIGINALITY INTEGRITY AUDIT
               </div>
               <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>
-                97.4% Clean
+                96.4% Custom
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                Zero pre-built anomalies or unverified bursts
+                3.6% whitelisted starter boilerplate verified
               </div>
             </div>
 
@@ -117,10 +123,10 @@ export default function Landing() {
                 BUILD PASSPORT READY
               </div>
               <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--accent-violet)', fontFamily: 'var(--font-mono)' }}>
-                HFP-2026-9842A
+                HFP-2026-NEXUS-01
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                Cryptographic multi-signature jury proof
+                SHA-256 verifiable manifest & commit audit seal
               </div>
             </div>
           </div>
@@ -130,9 +136,9 @@ export default function Landing() {
         <div style={{ marginBottom: '80px' }}>
           <div style={{ textAlign: 'center', marginBottom: '40px' }}>
             <span className="badge badge-emerald" style={{ marginBottom: '8px' }}>ARCHITECTURE</span>
-            <h2>Why Hackathons Need an Operating System</h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginTop: '6px' }}>
-              Generic tools like Discord, Devpost, and Trello fail to capture the intense sprint dynamics and build authenticity.
+            <h2>How the HackForge Operating System Connects</h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginTop: '6px', maxWidth: '680px', margin: '6px auto 0 auto' }}>
+              Four deterministic pillars that replace scattered chat channels and subjective pitch-only grading with real development lineage.
             </p>
           </div>
 
@@ -142,42 +148,42 @@ export default function Landing() {
               <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: 'var(--accent-emerald-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-emerald)', marginBottom: '14px' }}>
                 <Zap size={22} fill="currentColor" />
               </div>
-              <h3 style={{ fontSize: '1.1rem', marginBottom: '8px' }}>Gamified Quests & XP</h3>
+              <h3 style={{ fontSize: '1.1rem', marginBottom: '8px' }}>Milestone Quests & XP</h3>
               <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                Break hackathons into sprint milestones: architecture RFCs, MVP deployment, stress tests, and pitch decks with real-time level ups.
+                Deconstructs sponsor tracks into sprint phases: setup, core API, stress tests, and pitch decks, awarding verifiable XP on evidence submission.
               </p>
             </div>
 
             {/* Pillar 2 */}
             <div className="card">
               <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: 'var(--accent-cyan-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-cyan)', marginBottom: '14px' }}>
-                <ShieldCheck size={22} />
+                <GitBranch size={22} />
               </div>
-              <h3 style={{ fontSize: '1.1rem', marginBottom: '8px' }}>Build Passports</h3>
+              <h3 style={{ fontSize: '1.1rem', marginBottom: '8px' }}>GitHub Telemetry</h3>
               <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                Tamper-evident certificates containing cryptographic commit manifests, boilerplate diff audits, and verified deployment proofs.
+                Real OAuth repository sync capturing live commits, normalized activity timelines, and commit cadence auditing during the hackathon window.
               </p>
             </div>
 
             {/* Pillar 3 */}
             <div className="card">
-              <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: 'var(--accent-rose-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-rose)', marginBottom: '14px' }}>
-                <ShieldAlert size={22} />
+              <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: 'var(--accent-violet-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-violet)', marginBottom: '14px' }}>
+                <Cpu size={22} />
               </div>
-              <h3 style={{ fontSize: '1.1rem', marginBottom: '8px' }}>Integrity Sentinel</h3>
+              <h3 style={{ fontSize: '1.1rem', marginBottom: '8px' }}>TinyFish Research Copilot</h3>
               <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                Real-time anomaly detection identifying pre-built repositories, suspicious 20k line copy-paste bursts, and unwhitelisted boilerplates.
+                Autonomous web agent streaming live documentation, SDK specs, and competitive architecture straight into sprint quests to unblock builders.
               </p>
             </div>
 
             {/* Pillar 4 */}
             <div className="card">
-              <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: 'var(--accent-violet-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-violet)', marginBottom: '14px' }}>
-                <Cpu size={22} />
+              <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: 'var(--accent-rose-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-rose)', marginBottom: '14px' }}>
+                <ShieldCheck size={22} />
               </div>
-              <h3 style={{ fontSize: '1.1rem', marginBottom: '8px' }}>AI Team Copilot</h3>
+              <h3 style={{ fontSize: '1.1rem', marginBottom: '8px' }}>Verifiable Build Passports</h3>
               <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                Proactive coaching analyzing remaining sprint time, nudging teams to finish their demo video and verify contracts before submission.
+                Tamper-evident final certificates with SHA-256 state hashes, boilerplate diff audits, deployment links, and human-in-the-loop organizer review.
               </p>
             </div>
           </div>

@@ -23,7 +23,7 @@ import BuildPassport from '../components/BuildPassport';
 
 export default function PassportPage({ isPublicVerification = false }) {
   const { id, passportId } = useParams();
-  const { passport, setPassport, team, showToast, activeHackathon } = useHackForge();
+  const { passport, setPassport, team, showToast, activeHackathon, isDemoMode } = useHackForge();
   const [demoUrl, setDemoUrl] = useState(passport.demoVideoUrl || '');
   const [deployUrl, setDeployUrl] = useState(passport.liveDeployUrl || '');
   const [contractAddress, setContractAddress] = useState(passport.contractAddress || '');
@@ -49,18 +49,39 @@ export default function PassportPage({ isPublicVerification = false }) {
     showToast("Submission artifacts updated and sealed in Build Passport!", "default");
   };
 
-  const handleFinalSubmit = () => {
+  const handleFinalSubmit = async () => {
     setIsSubmitting(true);
-    setTimeout(() => {
+    try {
+      // Compute authentic cryptographic SHA-256 hash of manifest payload
+      const manifestPayload = JSON.stringify({
+        passportId: passport.passportId,
+        team: team.name,
+        hackathon: activeHackathon.title,
+        timestamp: new Date().toISOString(),
+        demoUrl,
+        deployUrl,
+        contractAddress
+      });
+      const encoder = new TextEncoder();
+      const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(manifestPayload));
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const computedHash = 'sha256:' + hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+      setTimeout(() => {
+        setIsSubmitting(false);
+        setSubmissionSuccess(true);
+        setPassport(prev => ({
+          ...prev,
+          status: "SUBMITTED_TO_JURY",
+          cryptographicHash: computedHash,
+          finalAuditTimestamp: new Date().toISOString()
+        }));
+        showToast("🎉 BUILD PASSPORT SEALED & SUBMITTED! Cryptographic SHA-256 seal verified.", "xp");
+      }, 800);
+    } catch (e) {
       setIsSubmitting(false);
-      setSubmissionSuccess(true);
-      setPassport(prev => ({
-        ...prev,
-        status: "SUBMITTED_TO_JURY",
-        finalAuditTimestamp: new Date().toISOString()
-      }));
-      showToast("🎉 BUILD PASSPORT SEALED & SUBMITTED! Your project is now locked in the Judge Queue.", "xp");
-    }, 1200);
+      showToast("Error computing cryptographic seal: " + e.message, "alert");
+    }
   };
 
   // If this is a standalone public verification page (e.g. /verify/HFP-2026-9842A-77)
@@ -131,6 +152,11 @@ export default function PassportPage({ isPublicVerification = false }) {
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
                 AUDIT ENGINE 3.2
               </span>
+              {(isDemoMode || passport?.isDemo) && (
+                <span className="badge badge-cyan" style={{ fontSize: '0.65rem' }}>
+                  SIMULATED DEMO DATA
+                </span>
+              )}
             </div>
             <h1 style={{ fontSize: '1.75rem', fontWeight: 800, margin: '0 0 6px 0', letterSpacing: '-0.02em' }}>
               Cryptographic Build Passport

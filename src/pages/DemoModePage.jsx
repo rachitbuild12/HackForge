@@ -84,7 +84,7 @@ export default function DemoModePage() {
           <div style={{ maxWidth: '780px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
               <span className="badge badge-emerald" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                <Sparkles size={12} /> HACKFORGE GRAND CHALLENGE
+                <Sparkles size={12} /> ETHGLOBAL AUTONOMOUS 2026
               </span>
               <span className="badge badge-cyan">5-MINUTE GUIDED SCENARIO</span>
               <span

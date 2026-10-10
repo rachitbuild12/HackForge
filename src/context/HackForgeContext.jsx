@@ -873,7 +873,25 @@ export function HackForgeProvider({ children }) {
   };
 
   const inviteMemberByEmail = (email, role = "Frontend") => {
-    showToast(`Encrypted invite link dispatched to ${email}`, "default");
+    if (!email) return;
+    const cleanName = email.split('@')[0];
+    const newMember = {
+      id: `usr_${Date.now()}`,
+      name: cleanName.charAt(0).toUpperCase() + cleanName.slice(1),
+      email,
+      role,
+      avatar: `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80`,
+      commits: 0,
+      xp: 0,
+      status: "Invited"
+    };
+
+    const updatedTeam = {
+      ...team,
+      members: [...(team?.members || []), newMember]
+    };
+    saveTeamState(updatedTeam);
+    showToast(`Invite dispatched to ${email} (${role})!`, "default");
   };
 
   const updateProjectDescription = (newDescription) => {

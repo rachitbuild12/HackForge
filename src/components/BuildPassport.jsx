@@ -36,7 +36,7 @@ import {
 import { useHackForge } from '../context/HackForgeContext';
 
 export default function BuildPassport({ passportData, showActions = true, isPublicView = false }) {
-  const { passport: defaultPassport, showToast, team: currentTeam, quests } = useHackForge();
+  const { passport: defaultPassport, showToast, team: currentTeam, quests, isDemoMode } = useHackForge();
   const data = passportData || defaultPassport;
 
   // Active section tab for interactive navigation
@@ -253,13 +253,18 @@ export default function BuildPassport({ passportData, showActions = true, isPubl
           marginBottom: '28px'
         }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
               <span className="badge badge-emerald" style={{ fontWeight: 700, letterSpacing: '0.04em' }}>
                 <ShieldCheck size={13} /> OFFICIAL BUILD PASSPORT
               </span>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
                 CRYPTOGRAPHIC PROVENANCE MANIFEST
               </span>
+              {(isDemoMode || data.isDemo) && (
+                <span className="badge badge-cyan" style={{ fontSize: '0.65rem', fontFamily: 'var(--font-mono)' }}>
+                  SIMULATED DEMO DATASET
+                </span>
+              )}
             </div>
 
             <h1 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '12px' }}>

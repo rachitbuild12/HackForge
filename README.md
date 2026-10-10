@@ -13,41 +13,51 @@
 <br />
 
 <p align="center">
-  <b>HackForge</b> brings live GitHub development telemetry, Supabase authentication, AI Copilot guidance, gamified quest rewards, Build Intelligence originality auditing, and cryptographic <b>Build Passports</b> into one connected high-velocity workspace.
+  <b>HackForge</b> brings live GitHub development telemetry, Supabase authentication, TinyFish autonomous web research, gamified quest rewards, Build Intelligence provenance auditing, and cryptographic <b>Build Passports</b> into one coherent, developer-focused platform.
 </p>
 
-[Explore Workspace](https://hackforges.netlify.app/) • [Report Bug](https://github.com/rachitbuild12/HackForge/issues) • [Request Feature](https://github.com/rachitbuild12/HackForge/issues)
+[Explore Live Platform](https://hackforges.netlify.app/) • [Run 5-Min Guided Demo](http://localhost:5173/demo) • [Report Issue](https://github.com/rachitbuild12/HackForge/issues)
 
 </div>
 
 ---
 
-## 🚀 Key Highlights & Capabilities
+## 🚀 Two Coherent Operational Modes
 
-### 1. 🐙 Real-Time GitHub Integration (Zero Mock Data)
-* **Dual Integration Models:** Connect via **GitHub App** (granular least-privilege repository access) or **Instant Personal Access Token / OAuth**.
+HackForge makes a crystal-clear distinction between live production functionality and seeded walkthrough scenarios:
+
+| Mode | Purpose | Data Source | Visual Indicator |
+|---|---|---|---|
+| **Live Workspace** | Real hackathon squads building live | Real GitHub OAuth API, Supabase Auth, TinyFish live crawler | Honest empty states ("Not connected", "Awaiting telemetry") when data is missing |
+| **Guided Demo Mode (`/demo`)** | 5-minute pre-mentor walkthrough across all 12 platform milestones | Deterministic scenario (`ETHGlobal Autonomous 2026`, squad `Nexus Sentinel`) | Visible, unobtrusive `[Simulated Data]` badge on all demo cards, timelines, and passports |
+
+---
+
+## ⚡ Core Capabilities
+
+### 1. 🐙 Real GitHub Integration
 * **Live Telemetry Stream:** Ingests authentic commits, active branch trees, pull request reviews, and issue discussions directly into HackForge's development timeline.
 * **Server-to-Server Security:** Access tokens and RSA private keys are handled exclusively on the backend—**zero credentials or tokens ever touch the browser**.
 * **HMAC Webhook Verification:** Verifies `X-Hub-Signature-256` payload signatures using cryptographic constant-time comparisons (`crypto.timingSafeEqual`) to prevent timing attacks.
-* **CSRF Protection:** State tokens signed with cryptographic entropy to prevent callback forgery.
+* **Honest Empty States:** When no repository is connected, live dashboards clearly display "Not connected" and prompt repository linkage rather than inventing fake data.
 
 ### 2. ⚡ Supabase Identity & Persistence Layer
-* **Universal Authentication:** Email & Password registration and sessions powered by Supabase Auth with automatic token refreshing.
-* **Granular Database Schema:** Tables for `github_app_installations`, `project_github_repositories`, and `project_github_activities`.
-* **Row-Level Security (RLS):** Strict policies ensuring teams only access authorized workspace data.
+* **Universal Authentication:** Email/password registration, login sessions, and GitHub OAuth powered by Supabase Auth with automatic session refresh.
+* **Granular Database Schema:** Tables for `github_app_installations`, `project_github_repositories`, and `project_github_activities` with Row-Level Security (RLS).
 * **Resilient Architecture:** Automatic fallback to a secure server in-memory store when Supabase environment variables are omitted.
 
-### 3. 🐟 TinyFish Live Web Research Engine
-* **Autonomous Technical Investigation:** Live agents explore official technical documentation, crawl public developer resources, and benchmark competing solutions.
-* **Actionable Sprint Tasks:** Automatically synthesizes research findings into executable development quests for hackathon squads.
+### 3. 🐟 TinyFish Autonomous Web Research Engine
+* **Real-Time Technical Investigation:** Autonomous web agents crawl official technical documentation, API references, and open-source specifications via streaming Server-Sent Events (SSE).
+* **Quest Synthesizer:** Converts complex research findings directly into executable milestone quests for hackathon squads.
 
 ### 4. 🛡️ Cryptographic Build Passports & Integrity Verification
-* **Originality Auditing:** Tracks commit bursts, diff velocity, and repository provenance throughout the sprint.
-* **QR-Verifiable Proofs:** Generates cryptographic SHA-256 Build Passports with verifiable Merkle tree roots for hackathon judges and organizers.
+* **Provenance Auditing:** Inspects commit cadence during the official hackathon window, flagging pre-existing code dumps and burst commits for organizer review ("Transparency, not automatic punishment").
+* **SHA-256 Manifest Hash:** Computes authentic SHA-256 state digests using the Web Crypto API, creating a tamper-evident submission certificate with a public verification link.
 
-### 5. 🎮 Gamified Squad Quests & Live Organizer HUD
-* **Dynamic Milestone Engine:** Automatically unlocks XP, tier badges, and status upgrades when commits and API builds pass health checks.
-* **Organizer Control Deck:** Real-time cohort monitoring, team pulse metrics, and transparency alerts.
+### 5. 🎮 Milestone Quests & Live Organizer / Judge Decks
+* **Gamified Progress Matrix:** Deconstructs hackathon tracks into sprint phases (Genesis, Core MVP, Deployment & Polish, Finale), awarding XP on verified deliverables.
+* **Organizer Control Deck:** Live squad monitoring, whitelist management, and human-in-the-loop integrity clearance.
+* **Jury Evaluation Queue:** Rubric scoring, draft persistence, and qualitative review without automated winner prediction bias.
 
 ---
 
